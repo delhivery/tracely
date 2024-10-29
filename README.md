@@ -6,7 +6,7 @@ Tracely is a python library that aims to provide following capabilities for trac
     * Conditionally remove pings that are close to the previous ping. Users can set `force_retain` to True for a ping if they want a ping to be forcefully retained.
     * Impute outlier pings on the basis of distance and direction.
 
-* Generate summary:
+* Generate summaries:
     * Cleaning summary: In output data, provide `cleaning_summary` to indicate the number of not null pings in input and output, along with other information.
     * Distance summary: In output data, provide `distance_summary` to indicate distance in raw and cleaned data, also the reduction in distance.
     * Stop summary: In output data, provide `stop_summary` to provide information about inferred stop events.
@@ -14,7 +14,7 @@ Tracely is a python library that aims to provide following capabilities for trac
 * Enrich sequential ping data:
     * Provide metrics on time and distance gap between two pings
     * Provide cumulative time and distance up to the respective ping.
-    * Provide details that which function modified the ping most recently and the type of operation.
+    * Provide details like which function modified the ping most recently and the type of operation.
 
 * Visualization:
     * Provide visualization capabilities, so that users can plot maps of individual pings or dual maps to compare two ping sequences, and visually inspect them.
@@ -76,7 +76,7 @@ Note: Apart from validation, **vehicle_type** and **vehicle_speed** information 
 
 # OSRM dependency
 
-A user can setup osrm from official osrm-backend repository.
+A user can setup OSRM from official osrm-backend repository.
 - Installation link: `https://github.com/Project-OSRM/osrm-backend`
 - Usage folder: `osrm/osrm-backend/build/`
 - Usage command: `./osrm-routed --max-matching-size=10000 india-latest.osrm`
@@ -121,9 +121,9 @@ Additionally, we have also provided a helper script `install_osrm.sh` using whic
       # Get comparison map plot for raw and clean trace (created in above example)
       map_object = clean_trace_object.plot_cleaning_comparison_map(raw_trace, clean_trace)
       ```
-    * Example map illustration  
-      ![Dual Map for cleaning](https://github.com/user-attachments/assets/9187dd8c-835b-4986-a0ad-b064f5928c40)
-
+    * Example map illustration
+      ![Dual map for cleaning](https://github.com/user-attachments/assets/8cad9482-362b-48a5-a876-e7ceaff4ac6a)
+  
   * User can add stop events information with CleanTrace's `add_stop_events_info` method, and get `folium.plugins.DualMap` object, containing raw trace and trace formed by stop pings. Example usage:
       ```python
       # Add stop event information in trace
@@ -132,8 +132,8 @@ Additionally, we have also provided a helper script `install_osrm.sh` using whic
       # Get comparison map plot for raw trace and stop pings trace
       map_object = clean_trace_object.plot_raw_vs_stop_comparison_map()
       ```
-    * Example map illustration      
-      ![Dual Map for stop points](https://github.com/user-attachments/assets/eacd2654-e1ca-43cf-b8d1-aa3443d8dd58)
+    * Example map illustration
+      ![Dual map for stop points](https://github.com/user-attachments/assets/92be9544-ce77-4fdd-8717-24cfbf2db25d)
 
 
 # Contact
