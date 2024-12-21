@@ -7,7 +7,9 @@ from unittest.mock import patch
 from src.tracely import constants
 from src.tracely.clean_trace import CleanTrace
 from src.tracely.exceptions.custom_exceptions import ValidationException
-from tests.testing_utils import load_trace_payload
+from tests.testing_utils import load_trace_payload, \
+                                load_calculate_trace_similarity_payloads
+
 from src.tracely.utils.output_validation_utils import validate_trace_similarity_output
 
 
@@ -64,22 +66,22 @@ valid_output_trace = {
 
 valid_trace_similarity_output = {
     'similarity_percentage': 76.41,
-    'metadata': {'similarity_info_trace_1_to_2': {'similarity_percentage': 71.79,
-    'overlapping_pings_indices': [[52, 0],
-    [53, 4],
-    [54, 4],
-    [55, 4],
-    [56, 4],
-    [57, 4]
-    ]},
-    'similarity_info_trace_2_to_1': {'similarity_percentage': 76.41,
-    'overlapping_pings_indices': [[0, 52],
-    [1, 52],
-    [2, 52],
-    [3, 52],
-    [4, 54],
-    [5, 54],
-    ]}},
+    'metadata': {'similarity_info_trace_1_to_2': 
+                    {'similarity_percentage': 71.79,
+                     'overlapping_pings_indices': [[52, 0],
+                                                   [53, 4],
+                                                   [54, 4],
+                                                   [55, 4],
+                                                   [56, 4],
+                                                   [57, 4]]},
+                 'similarity_info_trace_2_to_1': 
+                    {'similarity_percentage': 76.41,
+                     'overlapping_pings_indices': [[0, 52],
+                                                   [1, 52],
+                                                   [2, 52],
+                                                   [3, 52],
+                                                   [4, 54],
+                                                   [5, 54],]}},
     "plot": None
     }
 
@@ -1701,13 +1703,13 @@ def test_validate_trace_similarity_output_with_out_of_range_second_index_in_t2t1
 def test_validate_trace_similarity_output_successful_run():
     """Test validate_trace_similarity_output of valid output, without eny errors"""
 
-    traces_path = constants.BASE_PATH + "/tests/similarity_calculation_payloads/large_trace_pair.json"
-
-    with open(traces_path, "r", encoding="utf-8") as f:
-        payload = json.load(f)
+    payload = load_calculate_trace_similarity_payloads("large_trace_pair")
     
     trace_1 = payload["trace_1"]
     trace_2 = payload["trace_2"]
 
-    result = CleanTrace.calculate_trace_similarity(trace_1, trace_2, distance_threshold = 100, time_threshold = 10000)
+    result = CleanTrace.calculate_trace_similarity(trace_1, 
+                                                   trace_2, 
+                                                   distance_threshold = 100, 
+                                                   time_threshold = 10000)
     assert result["similarity_percentage"] == 99.76541

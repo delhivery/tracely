@@ -29,3 +29,19 @@ def load_trace_payload(payload_name):
     with open(payload_path, "r", encoding="utf-8") as f:
         payload = json.load(f)
     return payload
+
+
+def load_calculate_trace_similarity_payloads(payload_name):
+    """
+    Load saved traces for similarity calculation saved as a JSON file.
+
+    Args:
+        payload_name (dict): Name of payload JSON file.
+    """
+
+    trace_sim_cal_payloads_path = constants.TRACE_SIMILARITY_CALCULATION_PAYLOADS_PATH
+    payload_path = trace_sim_cal_payloads_path + payload_name + ".json"
+    print(payload_path)
+    with open(payload_path, "r", encoding="utf-8") as f:
+        payload = json.load(f)
+    return payload
