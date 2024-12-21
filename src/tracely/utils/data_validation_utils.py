@@ -795,3 +795,69 @@ class DataValidationUtils:
         DataValidationUtils.check_bool(force_retain_event_types, "force_retain_event_types")
         DataValidationUtils.check_strictly_positive_int_or_float(vehicle_speed, "vehicle_speed")
         
+    @staticmethod
+    def validate_calculate_trace_similarity_parameters(trace_1, trace_2, distance_threshold, time_threshold, plot_map = False):
+        """
+        Validate parameters for validate_calculate_trace_similarity_parameters function in CleanTrace class.
+
+        Raises:
+            ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If latitude in a ping is not of data type int, float or None.
+            ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If longitude in a ping is not of data type int, float or None.
+            ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If `distance_threshold` is not of data type int or float.
+            ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If `time_threshold` is not of data type int.
+            ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If `trace_1` is not of data type list.
+            ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If `trace_2` is not of data type list.
+            ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If a ping in `trace_1` is not of data type list.
+            ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If a ping in `trace_2` is not of data type list.
+
+            ValidationException (VALUE_EXCEPTION_CODE: 4003): If `trace_1` is an empty list.
+            ValidationException (VALUE_EXCEPTION_CODE: 4003): If `trace_2` is an empty list.
+            ValidationException (VALUE_EXCEPTION_CODE: 4003): If a ping in `trace_1` is an empty list.
+            ValidationException (VALUE_EXCEPTION_CODE: 4003): If a ping in `trace_2` is an empty list.
+            ValidationException (VALUE_EXCEPTION_CODE: 4003): If `distance_threshold` is negative.
+            ValidationException (VALUE_EXCEPTION_CODE: 4003): If `time_threshold` is negative.
+
+            ValidationException (INVALID_TIME_EXCEPTION_CODE: 4004): If timestamp in ping is not an integer or not in range [0, 2145916800000].
+
+            ValidationException (INVALID_COORDS_EXCEPTION_CODE: 4005): If latitude in a ping is not in range [-90 to 90].
+            ValidationException (INVALID_COORDS_EXCEPTION_CODE: 4005): If longitude in a ping is not in range [-180 to 180].
+        """
+
+        DataValidationUtils.check_empty_list(trace_1, "trace")
+        DataValidationUtils.check_empty_list(trace_2, "trace")
+
+        # Validate traces
+        for ping in trace_1:
+            # Check if ping is an empty list
+            DataValidationUtils.check_empty_list(ping, "ping")
+
+            # Validate presence of latitude, longitude and timestamp
+            if len(ping) < 3:
+                raise ValidationException(ValidationErrorMessage.INVALID_TRACE_FOR_OVERLAP_ESTIMATION,
+                                        ValidationErrorCode.VALUE_EXCEPTION_CODE)
+            
+            # Validate latitude, longitude, timestamp
+            DataValidationUtils.check_latitude(ping[0], "latitude")
+            DataValidationUtils.check_longitude(ping[1], "longitude")
+            DataValidationUtils.check_timestamp(ping[2], "timestamp")
+            
+        for ping in trace_2:
+            # Check if ping is an empty list
+            DataValidationUtils.check_empty_list(ping, "ping")
+
+            # Validate presence of lat, lng, timestamp
+            if len(ping) < 3:
+                raise ValidationException(ValidationErrorMessage.INVALID_TRACE_FOR_OVERLAP_ESTIMATION,
+                                        ValidationErrorCode.VALUE_EXCEPTION_CODE)
+
+            # Validate latitude, longitude, timestamp
+            DataValidationUtils.check_latitude(ping[0], "latitude")
+            DataValidationUtils.check_longitude(ping[1], "longitude")
+            DataValidationUtils.check_timestamp(ping[2], "timestamp")
+
+        # Validate thresholds
+        DataValidationUtils.check_non_negative_int_or_float(distance_threshold, "distance_threshold")
+        DataValidationUtils.check_timestamp(time_threshold, "time_threshold")
+
+        # Validate options
+        DataValidationUtils.check_bool(plot_map, "plot_map")

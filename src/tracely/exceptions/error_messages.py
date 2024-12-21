@@ -43,7 +43,8 @@ class ValidationErrorMessage:
     INVALID_PING_BATCH_SIZE_FOR_MAP_MATCHING = "ping_batch_size cannot be less than 2"
     INVALID_MIN_SIZE_FOR_STOP_EVENTS_DETECTION = "min_size cannot be less than 2"
     INVALID_MAX_DIST_RATIO_FOR_IMPUTATION = "max_dist_ratio can not be less than 0, but got {}"
-
+    INVALID_TRACE_FOR_OVERLAP_ESTIMATION = "Input traces must contain latitude, longitude and timestamp for all pings."
+    
     FOUND_DUPLICATE_VALUES = "Expected values for '{}' to be unique, but found duplicate values"
     MISSING_MANDATORY_KEY_IN_PING = "Expected key: {} missing from a ping dictionary"
     NON_STRING_KEYS_IN_DICT = "Expected keys of only string type in {} dictionary"
@@ -55,6 +56,10 @@ class ValidationErrorMessage:
     INCORRECT_INPUT_PINGS_COUNT = "total_non_null_pings_in_input cannot be greater than total_pings_in_input"
     INCORRECT_STATUS_PERCENTAGES_SUM = "Sum of percentages of various update statuses should be at least 99.9"
     INCORRECT_PINGS_COUNT_IN_CLEANING_SUMMARY = "total_pings_in_input in cleaning_summary must be equal to number of pings in input payload"
+    INCORRECT_SIMILARITY_PERCENTAGE = "similarity_percentage for similarity between 2 traces must be in range [0, 100]"
+    INVALID_OVERLAPPING_INDICES_LIST_LENGTH = "Length of 'overlapping_pings_indices' must non-negative and less than the length of its corresponding trace."
+    INVALID_OVERLAPPING_INDEX_VALUE = "Value of index in 'overlapping_pings_indices' must non-negative and less than the length of its corresponding trace."
+    INVALID_INDEX_PAIR = "Each index pair in 'overlapping_pings_indices' must be a list of length 2."
 
 
 class OSRMErrorCode:

@@ -55,8 +55,10 @@ Note: Apart from validation, **vehicle_type** and **vehicle_speed** information 
 
 # Important Resources
 
-* Input format: [Link](assets/docs/Tracely%20I_O%20Structure%20-%20input.pdf)
-* Output format: [Link](assets/docs/Tracely%20I_O%20Structure%20-%20output.pdf)
+* Input format for CleanTrace Class: [Link](assets/docs/Tracely%20I_O%20Structure%20-%20input%20for%20CleanTrace%20class.pdf)
+* Input format for calculate_trace_similarity method: [Link](assets/docs/Tracely%20I_O%20Structure%20-%20input%20for%20calculate_trace_similarity%20method.pdf)
+* Output format of get_trace_cleaning_output method: [Link](assets/docs/Tracely%20I_O%20Structure%20-%20output%20of%20get_trace_cleaning_output%20method.pdf)
+* Output format of calculate_trace_similarity method: [Link](assets/docs/Tracely%20I_O%20Structure%20-%20output%20of%20calculate_trace_similarity%20method.pdf)
 * Exception handling document: [Link](assets/docs/Tracely%20I_O%20Structure%20-%20exception_handling.pdf)
 * Function's documentation: [Link](assets/docs/functions_documentation.md)
 
@@ -71,6 +73,7 @@ Note: Apart from validation, **vehicle_type** and **vehicle_speed** information 
    >>> ./install_tracely.sh
    >>> python -m examples.trace_cleaning_example
    >>> python -m examples.stop_summary_example
+   >>> python -m examples.trace_similarity_example
    ```
 
 
@@ -135,6 +138,31 @@ Additionally, we have also provided a helper script `install_osrm.sh` using whic
     * Example map illustration      
       ![Dual Map for stop points](assets/images/stop_points_image.png)
 
+  * User can calculate the similarity between two traces and optionally visualize the traces using the `calculate_trace_similarity` method. Example usage:
+      ```python
+      from tracely.clean_trace import CleanTrace
+
+      # Define two traces with their respective latitudes, longitudes, and timestamps
+      trace_1 = [
+          [28.6139, 77.2090, 1706874347094],
+          [28.7041, 77.1025, 1706874348094],
+          # Add more points as needed
+      ]
+      trace_2 = [
+          [28.6140, 77.2095, 1706874347094],
+          [28.7030, 77.1030, 1706874348094],
+          # Add more points as needed
+      ]
+
+      # Define thresholds for distance and time
+      distance_threshold = 50  # meters
+      time_threshold = 1000    # milliseconds
+
+      # Calculate trace similarity
+      similarity_result = CleanTrace.calculate_trace_similarity(trace_1, trace_2, distance_threshold, time_threshold, plot_map=True)
+      ```
+    * Example map illustration      
+      ![Dual Map for traces](assets/images/trace_overlap_image.png)
 
 # Contact
 In case of any issues or suggestions, reach out at: tracely@delhivery.com

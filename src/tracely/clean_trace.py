@@ -3,6 +3,7 @@ import time
 import pandas as pd
 import numpy as np
 import folium as fl
+from scipy.spatial import KDTree
 from infostop import Infostop
 
 from . import constants
@@ -11,16 +12,17 @@ from .utils.data_validation_utils import DataValidationUtils
 from .utils.utils import get_haversine_distance, \
                          calculate_change_in_direction, \
                          convert_unix_timestamp_to_human_readable, \
-                         convert_time_interval_to_human_readable, \
-                         calculate_trace_distance
+                         convert_time_interval_to_human_readable
 
 from .utils.plotting_utils import plot_raw_trace_from_trace_output, \
                                   plot_clean_trace_from_trace_output, \
                                   plot_cleaning_comparison_map_bw_two_traces, \
-                                  plot_stop_comparison_map
+                                  plot_stop_comparison_map, \
+                                  plot_trace_overlap_map
 
 from .utils.output_validation_utils import validate_cleaned_trace, \
-                                           validate_clean_trace_output
+                                           validate_clean_trace_output, \
+                                           validate_trace_similarity_output
 
 from .utils.osrm_utils import create_segments, \
                               process_trace_segments, \
@@ -1294,3 +1296,174 @@ class CleanTrace():
         trace_output = self.get_trace_cleaning_output()
         trace = trace_output["cleaned_trace"]
         return plot_stop_comparison_map(copy.deepcopy(self.raw_trace), trace, map_object)
+
+    @staticmethod
+    def _calculate_trace_similarity(trace_1, trace_2, distance_threshold, time_threshold):
+        """
+        Calculates the spatial and temporal similarity between two traces based on specified distance and time thresholds.
+
+        This function determines the similarity of `trace_1` with `trace_2` by identifying the pings in `trace_1` that have a point in `trace_2` 
+        within the given distance and time thresholds. Overlapping pings are paired by their indices, and the similarity percentage is the percentage of pings in `trace_1` that are overlapping.
+
+        Args:
+            trace_1 (np.array): The first trace, represented as a NumPy array, where each row is [latitude, longitude, timestamp].
+            trace_2 (np.array): The second trace, represented as a NumPy array, where each row is [latitude, longitude, timestamp].
+            distance_threshold (float): The maximum allowable spatial distance (in meters) for two pings to be considered overlapping.
+            time_threshold (int): The maximum allowable time difference (in the same units as the timestamps, eg. unix epoch timestamp) for two pings to be considered overlapping.
+
+        Returns:
+            dict: 
+                A dictionary containing:
+                    similarity_percentage (float): The percentage of pings in `trace_1` that have overlapping pings in `trace_2`.
+                    overlapping_pings_indices (list): A list of pairs of indices, where each pair represents the indices of overlapping pings in `trace_1` and `trace_2`.
+
+        Notes:
+            - The distance between pings is calculated using the Haversine formula.
+
+        """
+
+        # Create KDTree for time filtering on trace_2
+        time_pings_2 = trace_2[:, 2].reshape(-1, 1)  # Extract timestamps as 1D pings
+        time_tree_2 = KDTree(time_pings_2)
+
+        # Initialize variables
+        matched_pings_counts = 0
+        overlapping_pings_pairs = []
+
+        # Iterate through pings in trace_1
+        for i, (lat1, lon1, ts1) in enumerate(trace_1):
+            # Query pings in trace_2 within the time threshold
+            candidates = time_tree_2.query_ball_point(ts1, r=time_threshold)
+
+            if not candidates:
+                continue
+
+            # Extract spatial pings of candidates
+            candidate_pings = trace_2[candidates, :2]
+
+            # Calculate the difference array
+            candidate_pings_np = np.array(candidate_pings)
+            difference_array = candidate_pings_np - np.array([lat1, lon1])
+            difference_sums = np.sum(np.abs(difference_array), axis=1)
+
+            # Find the closest candidate by minimum sum of differences
+            closest_index = np.argmin(difference_sums)
+            closest_point = candidate_pings[closest_index]
+
+            # Check Haversine distance
+            lat2, lon2 = closest_point
+            haversine_distance = get_haversine_distance(lat1, lon1, lat2, lon2)
+
+            if haversine_distance <= distance_threshold:
+                matched_pings_counts += 1
+                overlapping_pings_pairs.append([i, candidates[closest_index]])
+
+        # Calculate similarity percentage
+        similarity_percentage = (matched_pings_counts / len(trace_1)) * 100
+        similarity_percentage = round(similarity_percentage, 5)
+
+        # Return results
+        return {
+            "similarity_percentage": similarity_percentage,
+            "overlapping_pings_indices": overlapping_pings_pairs
+        }
+
+    @staticmethod
+    def calculate_trace_similarity(trace_1, trace_2, distance_threshold, time_threshold, plot_map=False):
+        """
+        Calculates the similarity between two traces based on spatial and temporal thresholds.
+
+        This function determines the overlap between `trace_1` and `trace_2` by identifying pairs of pings that are within the specified distance and time thresholds. 
+        It computes the similarity percentage for both traces and optionally generates a map visualization of the traces and their overlapping pings.
+
+        Args:
+            trace_1 (list): The first trace as list of list, where each sublist represents [latitude, longitude, timestamp, ...].
+                            Here, latitude and longitude are in degrees, and timestamp is unix epoch timestamp in milliseconds.
+            trace_2 (list): The second trace as list of list, where each sublist represents [latitude, longitude, timestamp, ...].
+                            Here, latitude and longitude are in degrees, and timestamp is unix epoch timestamp in milliseconds.
+            distance_threshold (float): The maximum distance (in meters) within which two pings are considered overlapping.
+            time_threshold (int): The maximum allowable time difference in milliseconds for two pings to be considered overlapping.
+            plot_map (bool, optional): A flag indicating whether to generate a folium map visualization of the traces and their overlapping pings. Defaults to `False`.
+
+        Returns:
+            dict: 
+                A dictionary containing:
+                    similarity_percentage (float): The overall similarity percentage between the two traces.
+                    metadata (dict): Detailed similarity information including:
+                        similarity_info_trace_1_to_2 (dict): Similarity of `trace_1` with respect to `trace_2`, containing:
+                            similarity_percentage (float): Percentage of pings in `trace_1` overlapping with `trace_2`.
+                            overlapping_pings_indices (list): Pairs of indices representing overlapping pings in `trace_1` and `trace_2`.
+                        similarity_info_trace_2_to_1 (dict): Similarity of `trace_2` with respect to `trace_1`, containing:
+                            similarity_percentage (float): Percentage of pings in `trace_2` overlapping with `trace_1`.
+                            overlapping_pings_indices (list): Pairs of indices representing overlapping pings in `trace_2` and `trace_1`.
+                    plot (folium.plugins.DualMap or None): A folium map visualization of the traces, if plot_map is True. Otherwise, None.
+
+        Notes:
+            - The similarity percentage is taken as the higher of the similarity percentages of the two traces relative to each other.
+            - The distance is calculated using the Haversine formula for geographical points.
+            - Pings with null latitude or longitude values in the input traces are removed before processing.
+
+        Raises:
+            All exceptions raised by the following functions:
+                "DataValidationUtils.validate_calculate_trace_similarity_parameters" present in data_validation_utils.py.
+                "validate_trace_similarity_output" present in output_validation_utils.py.
+        """
+
+        # Validate input data
+        DataValidationUtils.validate_calculate_trace_similarity_parameters(trace_1, trace_2, distance_threshold, time_threshold, plot_map)
+
+        # Clean traces by removing null values and sorting by timestamp
+        columns = ["latitude", "longitude", "timestamp"]
+        trace_1_df = pd.DataFrame(trace_1, columns=columns)
+        clean_trace_1_list = trace_1_df.dropna(subset=["latitude", "longitude"])[["latitude", "longitude", "timestamp"]]\
+                                    .sort_values(by=["timestamp"]).values.tolist()
+
+        trace_2_df = pd.DataFrame(trace_2, columns=columns)
+        clean_trace_2_list = trace_2_df.dropna(subset=["latitude", "longitude"])[["latitude", "longitude", "timestamp"]]\
+                                    .sort_values(by=["timestamp"]).values.tolist()
+
+        # Compute representative locations
+        trace_1_np = np.array(clean_trace_1_list)
+        trace_2_np = np.array(clean_trace_2_list)
+        trace_1_representative_location = (np.mean(trace_1_np[:, 0]), np.mean(trace_1_np[:, 1]))
+        trace_2_representative_location = (np.mean(trace_2_np[:, 0]), np.mean(trace_2_np[:, 1]))
+        representative_loc_for_both_traces = ((trace_1_representative_location[0] + trace_2_representative_location[0]) / 2,
+                                              (trace_1_representative_location[1] + trace_2_representative_location[1]) / 2 )
+
+        # Get similarity information
+        similarity_info_trace_1_to_2 = CleanTrace._calculate_trace_similarity(trace_1_np, trace_2_np, distance_threshold, time_threshold)
+        similarity_info_trace_2_to_1 = CleanTrace._calculate_trace_similarity(trace_2_np, trace_1_np, distance_threshold, time_threshold)
+
+        # Take higher of individual similarity percentages as overall similarity.
+        similarity_percentage = max(similarity_info_trace_1_to_2["similarity_percentage"], similarity_info_trace_2_to_1["similarity_percentage"])
+        
+        # Assign similarity information of individual traces in metadata dict
+        metadata = {
+            "similarity_info_trace_1_to_2": similarity_info_trace_1_to_2,
+            "similarity_info_trace_2_to_1": similarity_info_trace_2_to_1
+        }
+
+        # Plot map according to plot_map argument
+        if plot_map:
+            similarity_percentage_trace_1_to_2 = round(similarity_info_trace_1_to_2["similarity_percentage"], 2)
+            similarity_percentage_trace_2_to_1 = round(similarity_info_trace_2_to_1["similarity_percentage"], 2)
+
+            left_text  = f"<div><b>Trace Similarity (T1, T2)</b>: {similarity_percentage_trace_1_to_2} %</div>"
+            right_text = f"<div><b>Trace Similarity (T2, T1)</b>: {similarity_percentage_trace_2_to_1} %</div>"
+
+            plot = plot_trace_overlap_map(clean_trace_1_list, clean_trace_2_list, 
+                                          left_text, right_text,
+                                          map_centre=representative_loc_for_both_traces
+                                          )
+        else:
+            plot = None
+
+        # Create output dictionary
+        similarity_result = {"similarity_percentage": similarity_percentage, "metadata": metadata, "plot": plot}
+
+        # Validate output
+        len_clean_trace_1_list = len(clean_trace_1_list)
+        len_clean_trace_2_list = len(clean_trace_2_list)
+        validate_trace_similarity_output(similarity_result, len_clean_trace_1_list, len_clean_trace_2_list)
+
+        return similarity_result

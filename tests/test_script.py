@@ -1,5 +1,6 @@
 import re
 import os
+import json
 import pytest
 import folium
 import tempfile
@@ -1328,6 +1329,10 @@ def test_convert_csv_to_trace_payload_with_column_named_metadata():
     os.remove(temp_csv.name)
 
 
+##############################################
+# Test invalid parameters values for functions
+##############################################
+
 def test_remove_nearby_pings_invalid_parameter_type():
     """Test for invalid data type for min_dist_bw_consecutive_pings."""
 
@@ -1742,6 +1747,262 @@ def test_interpolate_trace_invalid_combination_for_min_and_max_dist_from_prev_pi
         trace_data_obj.interpolate_trace(min_dist_from_prev_ping=200, max_dist_from_prev_ping=100)
 
 
+def test_calculate_trace_similarity_with_invalid_dtype_of_distance_threshold():
+    """Test for invalid data type for distance_threshold."""
+
+    traces_path = constants.BASE_PATH + "/tests/similarity_calculation_payloads/similar_trace_pair.json"
+
+    with open(traces_path, "r", encoding="utf-8") as f:
+        payload = json.load(f)
+    
+    trace_1 = payload["trace_1"]
+    trace_2 = payload["trace_2"]
+
+    expected_error_msg = re.escape('("distance_threshold must be of type Int or Float but found <class \'str\'>", 4002)')
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        CleanTrace.calculate_trace_similarity(trace_1, trace_2, distance_threshold = "invalid", time_threshold = 0)  # Invalid type: string
+
+
+def test_calculate_trace_similarity_with_negative_distance_threshold():
+    """Test for negative value of distance_threshold."""
+
+    traces_path = constants.BASE_PATH + "/tests/similarity_calculation_payloads/similar_trace_pair.json"
+
+    with open(traces_path, "r", encoding="utf-8") as f:
+        payload = json.load(f)
+    
+    trace_1 = payload["trace_1"]
+    trace_2 = payload["trace_2"]
+
+    expected_error_msg = re.escape("('distance_threshold cannot be negative', 4003)")
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        CleanTrace.calculate_trace_similarity(trace_1, trace_2, distance_threshold = -1, time_threshold = 0)  # Invalid value: negative
+
+
+def test_calculate_trace_similarity_with_invalid_dtype_of_time_threshold():
+    """Test for invalid data type for time_threshold."""
+
+    traces_path = constants.BASE_PATH + "/tests/similarity_calculation_payloads/similar_trace_pair.json"
+
+    with open(traces_path, "r", encoding="utf-8") as f:
+        payload = json.load(f)
+    
+    trace_1 = payload["trace_1"]
+    trace_2 = payload["trace_2"]
+
+    expected_error_msg = re.escape('("time_threshold must be of type Int but found <class \'str\'>", 4002)')
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        CleanTrace.calculate_trace_similarity(trace_1, trace_2, distance_threshold = 0, time_threshold = "invalid")  # Invalid type: string
+
+
+def test_calculate_trace_similarity_with_negative_time_threshold():
+    """Test for negative value of time_threshold."""
+
+    traces_path = constants.BASE_PATH + "/tests/similarity_calculation_payloads/similar_trace_pair.json"
+
+    with open(traces_path, "r", encoding="utf-8") as f:
+        payload = json.load(f)
+    
+    trace_1 = payload["trace_1"]
+    trace_2 = payload["trace_2"]
+
+    expected_error_msg = re.escape("('time_threshold must be in milliseconds and unix epoch format within range [0, 2145916800000] but found timestamp = -1', 4004)")
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        CleanTrace.calculate_trace_similarity(trace_1, trace_2, distance_threshold = 0, time_threshold = -1)  # Invalid value: negative
+
+
+def test_calculate_trace_similarity_with_invalid_dtype_of_plot_map():
+    """Test for invalid data type for plot_map."""
+
+    traces_path = constants.BASE_PATH + "/tests/similarity_calculation_payloads/similar_trace_pair.json"
+
+    with open(traces_path, "r", encoding="utf-8") as f:
+        payload = json.load(f)
+    
+    trace_1 = payload["trace_1"]
+    trace_2 = payload["trace_2"]
+
+    expected_error_msg = re.escape('("plot_map must be of type Bool but found <class \'str\'>", 4002)')
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        CleanTrace.calculate_trace_similarity(trace_1, trace_2, distance_threshold = 1, time_threshold = 1, plot_map = "invalid")  # Invalid type: string
+
+
+def test_calculate_trace_similarity_with_invalid_latitude_type_in_trace():
+    """Test for invalid data type of latitude in trace."""
+
+    traces_path = constants.BASE_PATH + "/tests/similarity_calculation_payloads/similar_trace_pair.json"
+
+    with open(traces_path, "r", encoding="utf-8") as f:
+        payload = json.load(f)
+    
+    trace_1 = payload["trace_1"]
+    trace_1[0] = ["invalid_lat", 0, 1] # Invalid type: string
+    trace_2 = payload["trace_2"]
+
+    expected_error_msg = re.escape('("latitude must be of type Int, Float or None but found <class \'str\'>", 4002)')
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        CleanTrace.calculate_trace_similarity(trace_1, trace_2, distance_threshold = 1, time_threshold = 1)
+
+
+def test_calculate_trace_similarity_with_invalid_longitude_type_in_trace():
+    """Test for invalid data type of longitude in trace."""
+
+    traces_path = constants.BASE_PATH + "/tests/similarity_calculation_payloads/similar_trace_pair.json"
+
+    with open(traces_path, "r", encoding="utf-8") as f:
+        payload = json.load(f)
+    
+    trace_1 = payload["trace_1"]
+    trace_1[0] = [0, "invalid_lng", 1] # Invalid type: string
+    trace_2 = payload["trace_2"]
+
+    expected_error_msg = re.escape('("longitude must be of type Int, Float or None but found <class \'str\'>", 4002)')
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        CleanTrace.calculate_trace_similarity(trace_1, trace_2, distance_threshold = 1, time_threshold = 1)  # Invalid type: string
+
+
+def test_calculate_trace_similarity_with_invalid_timestamp_type_in_trace():
+    """Test for invalid data type of timestamp in trace."""
+
+    traces_path = constants.BASE_PATH + "/tests/similarity_calculation_payloads/similar_trace_pair.json"
+
+    with open(traces_path, "r", encoding="utf-8") as f:
+        payload = json.load(f)
+    
+    trace_1 = payload["trace_1"]
+    trace_1[0] = [0, 0, "invalid_timestmap"] # Invalid type: string
+    trace_2 = payload["trace_2"]
+
+    expected_error_msg = re.escape('("timestamp must be of type Int but found <class \'str\'>", 4002)')
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        CleanTrace.calculate_trace_similarity(trace_1, trace_2, distance_threshold = 1, time_threshold = 1) 
+
+
+def test_calculate_trace_similarity_with_incomplete_trace():
+    """Test for incomplete trace."""
+
+    traces_path = constants.BASE_PATH + "/tests/similarity_calculation_payloads/similar_trace_pair.json"
+
+    with open(traces_path, "r", encoding="utf-8") as f:
+        payload = json.load(f)
+    
+    trace_1 = payload["trace_1"]
+    trace_1[0] = [0, 0] # Only two elements
+    trace_2 = payload["trace_2"]
+
+    expected_error_msg = re.escape("('Input traces must contain latitude, longitude and timestamp for all pings.', 4003)")
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        CleanTrace.calculate_trace_similarity(trace_1, trace_2, distance_threshold = 1, time_threshold = 1)
+
+
+def test_calculate_trace_similarity_with_invalid_latitude_value_in_trace():
+    """Test for invalid value of latitude in trace."""
+
+    traces_path = constants.BASE_PATH + "/tests/similarity_calculation_payloads/similar_trace_pair.json"
+
+    with open(traces_path, "r", encoding="utf-8") as f:
+        payload = json.load(f)
+    
+    trace_1 = payload["trace_1"]
+    trace_1[0] = [1000, 0, 0]
+    trace_2 = payload["trace_2"]
+
+    expected_error_msg = re.escape("('latitude must be within range [-90 to 90] but found latitude = 1000', 4005)")
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        CleanTrace.calculate_trace_similarity(trace_1, trace_2, distance_threshold = 1, time_threshold = 1) 
+
+
+def test_calculate_trace_similarity_with_invalid_longitude_value_in_trace():
+    """Test for invalid value of longitude in trace."""
+
+    traces_path = constants.BASE_PATH + "/tests/similarity_calculation_payloads/similar_trace_pair.json"
+
+    with open(traces_path, "r", encoding="utf-8") as f:
+        payload = json.load(f)
+    
+    trace_1 = payload["trace_1"]
+    trace_1[0] = [0, 1000, 0]
+    trace_2 = payload["trace_2"]
+
+    expected_error_msg = re.escape("('longitude must be within range [-180 to 180] but found longitude = 1000', 4005)")
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        CleanTrace.calculate_trace_similarity(trace_1, trace_2, distance_threshold = 1, time_threshold = 1)
+
+
+def test_calculate_trace_similarity_with_invalid_timestamp_value_in_trace():
+    """Test for invalid value of timestamp in trace."""
+
+    traces_path = constants.BASE_PATH + "/tests/similarity_calculation_payloads/similar_trace_pair.json"
+
+    with open(traces_path, "r", encoding="utf-8") as f:
+        payload = json.load(f)
+    
+    trace_1 = payload["trace_1"]
+    trace_1[0] = [0, 0, -1]
+    trace_2 = payload["trace_2"]
+
+    expected_error_msg = re.escape("('timestamp must be in milliseconds and unix epoch format within range [0, 2145916800000] but found timestamp = -1', 4004)")
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        CleanTrace.calculate_trace_similarity(trace_1, trace_2, distance_threshold = 1, time_threshold = 1)
+
+
+def test_calculate_trace_similarity_with_similar_traces():
+    """Test traces with high similarity."""
+
+    traces_path = constants.BASE_PATH + "/tests/similarity_calculation_payloads/similar_trace_pair.json"
+
+    with open(traces_path, "r", encoding="utf-8") as f:
+        payload = json.load(f)
+    
+    trace_1 = payload["trace_1"]
+    trace_2 = payload["trace_2"]
+
+    result = CleanTrace.calculate_trace_similarity(trace_1, trace_2, distance_threshold = 20, time_threshold = 1)
+    assert result["similarity_percentage"] == 100.0
+
+
+def test_calculate_trace_similarity_with_dissimilar_traces():
+    """Test traces with low similarity."""
+
+    traces_path = constants.BASE_PATH + "/tests/similarity_calculation_payloads/dissimilar_trace_pair.json"
+
+    with open(traces_path, "r", encoding="utf-8") as f:
+        payload = json.load(f)
+    
+    trace_1 = payload["trace_1"]
+    trace_2 = payload["trace_2"]
+
+    result = CleanTrace.calculate_trace_similarity(trace_1, trace_2, distance_threshold = 1, time_threshold = 1)
+    assert result["similarity_percentage"] == 0.0
+
+
+def test_calculate_trace_similarity_with_large_traces():
+    """Test traces with higher ping count for similarity calculation."""
+
+    traces_path = constants.BASE_PATH + "/tests/similarity_calculation_payloads/large_trace_pair.json"
+
+    with open(traces_path, "r", encoding="utf-8") as f:
+        payload = json.load(f)
+    
+    trace_1 = payload["trace_1"]
+    trace_2 = payload["trace_2"]
+
+    result = CleanTrace.calculate_trace_similarity(trace_1, trace_2, distance_threshold = 100, time_threshold = 10000)
+    assert result["similarity_percentage"] == 99.76541
+
+
 ###################
 # Test run examples
 ###################
@@ -1766,6 +2027,20 @@ def test_run_trace_cleaning_example():
 
     # Construct the command to run
     command = ['python', '-m', 'examples.trace_cleaning_example']
+
+    # Change the working directory to the tracely directory
+    result = subprocess.run(command, cwd=tracely_dir)
+
+    # Check if the command was successful
+    assert result.returncode == 0
+
+
+def test_run_trace_similarity_example():
+
+    tracely_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    # Construct the command to run
+    command = ['python', '-m', 'examples.trace_similarity_example']
 
     # Change the working directory to the tracely directory
     result = subprocess.run(command, cwd=tracely_dir)
