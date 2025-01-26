@@ -503,4 +503,182 @@ def validate_clean_trace_output(clean_trace_output, raw_trace_length, name="clea
     _validate_cleaning_summary(clean_trace_output["cleaning_summary"], raw_trace_length=raw_trace_length)
     _validate_distance_summary(clean_trace_output["distance_summary"])
     _validate_stop_summary(clean_trace_output["stop_summary"])
+
+
+def _validate_metadata(metadata, length_trace_1, length_trace_2, name="metadata"):
+    """Validates the structure and contents of metadata in trace similarity output.
+
+    Args:
+        metadata (dict): Metadata to be validated.
+        length_trace_1 (int): Length of trace_1 (number of pings).
+        length_trace_2 (int): Length of trace_2 (number of pings).
+        name (str, optional): Name of metadata dict. Defaults to "metadata".
+
+    Raises:
+        ValidationException (KEY_ERROR_EXCEPTION_CODE: 4001): If a mandatory key is missing from metadata.
+        ValidationException (KEY_ERROR_EXCEPTION_CODE: 4001): If a mandatory key is missing from similarity data of individual trace in metadata.
+        ValidationException (KEY_ERROR_EXCEPTION_CODE: 4001): If an unexpected key is present in metadata.
+        ValidationException (KEY_ERROR_EXCEPTION_CODE: 4001): If an unexpected key is present in similarity data of individual trace in metadata.
+
+        ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If metadata is an empty dict.
+        ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If similarity data of individual trace in metadata is an empty dict.
+        ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If similarity_percentage in similarity data of individual trace is not of data type int or float.
+        ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If overlapping_pings_indices in similarity data of individual trace is not a list.
+        ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If an index pair within overlapping_pings_indices is not a list.
+
+        ValidationException (VALUE_EXCEPTION_CODE: 4003): If an index pair list within overlapping_pings_indices is not of length 2.
+        ValidationException (VALUE_EXCEPTION_CODE: 4003): If similarity_percentage in similarity data of individual trace is not in range [1, 100].
+        ValidationException (VALUE_EXCEPTION_CODE: 4003): If length of overlapping_pings_indices in similarity_info_trace_1_to_2 is greater than length of trace_1 itself.
+        ValidationException (VALUE_EXCEPTION_CODE: 4003): If length of overlapping_pings_indices in similarity_info_trace_2_to_1 is greater than length of trace_2 itself.
+        ValidationException (VALUE_EXCEPTION_CODE: 4003): If an index in a pair in overlapping_pings_indices is greater than the length of its respective trace itself.
+        ValidationException (VALUE_EXCEPTION_CODE: 4003): If similarity_percentage in similarity data of individual trace is negative.
+    """
+
+    # Check empty metadata dict
+    DataValidationUtils.check_empty_dict(metadata, "metadata")
+    
+    # Check mandatory keys
+    for key in constants.TRACE_SIMILARITY_OUTPUT_METADATA_KEYS:
+        DataValidationUtils.check_key_in_a_dict(metadata, key)
+
+    # Check unexpected keys
+    for key, value in metadata.items():
+        if key not in constants.TRACE_SIMILARITY_OUTPUT_METADATA_KEYS:
+            raise ValidationException(ValidationErrorMessage.UNEXPECTED_KEYS_IN_DICT.format(name),
+                                      ValidationErrorCode.KEY_ERROR_EXCEPTION_CODE)
+
+    # Within metadata, check individual trace's similarity data
+    for metadata_key in constants.TRACE_SIMILARITY_OUTPUT_METADATA_KEYS:
+        similarity_data = metadata[metadata_key]
+
+        # Check empty similarity_data dict
+        DataValidationUtils.check_empty_dict(similarity_data, "similarity data in metadata")
         
+        # Check mandatory keys
+        for sim_info_key in constants.TRACE_SIMILARITY_OUTPUT_METADATA_INDIVIDUAL_TRACE_SIM_INFO_KEYS:
+            DataValidationUtils.check_key_in_a_dict(similarity_data, sim_info_key)
+
+        # Check unexpected keys
+        for sim_info_key, value in similarity_data.items():
+            if sim_info_key not in constants.TRACE_SIMILARITY_OUTPUT_METADATA_INDIVIDUAL_TRACE_SIM_INFO_KEYS:
+                raise ValidationException(ValidationErrorMessage.UNEXPECTED_KEYS_IN_DICT.format(name),
+                                        ValidationErrorCode.KEY_ERROR_EXCEPTION_CODE)
+
+        # Validate similarity_percentage
+        similarity_percentage = similarity_data["similarity_percentage"]
+
+        # Check datatype and value
+        DataValidationUtils.check_int_or_float(similarity_percentage, "similarity_percentage")
+
+        if not (0 <= similarity_percentage <= 100):
+            raise ValidationException(ValidationErrorMessage.INCORRECT_SIMILARITY_PERCENTAGE,
+                                      ValidationErrorCode.VALUE_EXCEPTION_CODE)
+       
+        # Validate overlapping_pings_indices
+        overlapping_pings_indices = similarity_data["overlapping_pings_indices"]
+        DataValidationUtils.check_list(overlapping_pings_indices, "overlapping_pings_indices")
+        
+        # Validate each index pair in overlapping_pings_indices
+        for index_pair in overlapping_pings_indices:
+            # Index pair must be a list
+            DataValidationUtils.check_list(index_pair, "index_pair")
+ 
+            # Index pair must contain exactly 2 element (indices)
+            if len(index_pair) != 2: 
+                raise ValidationException(ValidationErrorMessage.INVALID_INDEX_PAIR,
+                                        ValidationErrorCode.VALUE_EXCEPTION_CODE)
+        
+        # Length validations based on key
+        if metadata_key == 'similarity_info_trace_1_to_2':
+            # Check if count of index pairs is less than then count of pings in trace_1
+            if len(overlapping_pings_indices) > length_trace_1:
+                raise ValidationException(ValidationErrorMessage.INVALID_OVERLAPPING_INDICES_LIST_LENGTH,
+                                        ValidationErrorCode.VALUE_EXCEPTION_CODE)
+            
+            # Check value of indices
+            for index_pair in overlapping_pings_indices:
+                if (index_pair[0] < 0) or (index_pair[0] > length_trace_1):
+                    raise ValidationException(ValidationErrorMessage.INVALID_OVERLAPPING_INDEX_VALUE,
+                                              ValidationErrorCode.VALUE_EXCEPTION_CODE)
+                
+                elif (index_pair[1] < 0) or (index_pair[1] > length_trace_2):
+                    raise ValidationException(ValidationErrorMessage.INVALID_OVERLAPPING_INDEX_VALUE,
+                                              ValidationErrorCode.VALUE_EXCEPTION_CODE)
+        
+        elif metadata_key == 'similarity_info_trace_2_to_1':
+            # Check if count of index pairs is less than then count of pings in trace_2
+            if len(overlapping_pings_indices) > length_trace_2:
+                raise ValidationException(ValidationErrorMessage.INVALID_OVERLAPPING_INDICES_LIST_LENGTH,
+                                            ValidationErrorCode.VALUE_EXCEPTION_CODE)
+            
+            # Check value of indices
+            for index_pair in overlapping_pings_indices:
+                if (index_pair[0] < 0) or (index_pair[0] > length_trace_2):
+                    raise ValidationException(ValidationErrorMessage.INVALID_OVERLAPPING_INDEX_VALUE,
+                                              ValidationErrorCode.VALUE_EXCEPTION_CODE)
+                
+                if (index_pair[1] < 0) or (index_pair[1] > length_trace_1):
+                    raise ValidationException(ValidationErrorMessage.INVALID_OVERLAPPING_INDEX_VALUE,
+                                              ValidationErrorCode.VALUE_EXCEPTION_CODE)
+
+
+def validate_trace_similarity_output(trace_similarity_output, trace_1_array, trace_2_array, name="trace_similarity_output"):
+    """Validates the structure and contents of trace similarity output.
+
+    Args:
+        trace_similarity_output (dict): Trace similarity dict to be validated.
+        trace_1_array (numpy.array): trace_1 as numpy array.
+        trace_1_array (numpy.array): trace_2 as numpy array.
+        name (str, optional): Name of input dict. Defaults to "trace_similarity_output".
+
+    Raises:
+        ValidationException (KEY_ERROR_EXCEPTION_CODE: 4001): If a mandatory key is missing from trace_similarity_output.
+        ValidationException (KEY_ERROR_EXCEPTION_CODE: 4001): If a mandatory key is missing from similarity data of individual trace in metadata.
+        ValidationException (KEY_ERROR_EXCEPTION_CODE: 4001): If a mandatory key is missing from metadata in trace_similarity_output.
+        ValidationException (KEY_ERROR_EXCEPTION_CODE: 4001): If an unexpected key is present in metadata in trace_similarity_output.
+        ValidationException (KEY_ERROR_EXCEPTION_CODE: 4001): If an unexpected key is present in similarity data of individual trace.
+        ValidationException (KEY_ERROR_EXCEPTION_CODE: 4001): If an unexpected key is present in trace_similarity_output.
+
+        ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If trace_similarity_output is an empty dict. 
+        ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If metadata is an empty dict.
+        ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If similarity data of individual trace in metadata is an empty dict.
+        ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If similarity_percentage in metadata is not of data type int or float.
+        ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If similarity_percentage in trace_similarity_output is not of data type int or float.
+        ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If overlapping_pings_indices in metadata is not a list.
+        ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If an index pair within overlapping_pings_indices in metadata is not a list.
+
+        ValidationException (VALUE_EXCEPTION_CODE: 4003): If an index pair list within overlapping_pings_indices in metadata is not of length 2.
+        ValidationException (VALUE_EXCEPTION_CODE: 4003): If similarity_percentage in metadata is not in range [1, 100].
+        ValidationException (VALUE_EXCEPTION_CODE: 4003): If similarity_percentage in trace_similarity_output is not in range [1, 100].
+        ValidationException (VALUE_EXCEPTION_CODE: 4003): If length of overlapping_pings_indices in similarity_info_trace_1_to_2 is greater than length of trace_1 itself.
+        ValidationException (VALUE_EXCEPTION_CODE: 4003): If length of overlapping_pings_indices in similarity_info_trace_2_to_1 is greater than length of trace_2 itself.
+        ValidationException (VALUE_EXCEPTION_CODE: 4003): If an index in overlapping_pings_indices is greater than length of its respective trace itself.
+        ValidationException (VALUE_EXCEPTION_CODE: 4003): If similarity_percentage in similarity data of individual trace in metadata of trace_similarity_output is negative.
+    """
+
+    # Check empty trace similarity output dict
+    DataValidationUtils.check_empty_dict(trace_similarity_output, name)
+
+    # Check mandatory key
+    for key in constants.TRACE_SIMILARITY_OUTPUT_KEYS:
+        DataValidationUtils.check_key_in_a_dict(trace_similarity_output, key)
+
+    # Check unexpected key
+    for key, value in trace_similarity_output.items():
+        if key not in constants.TRACE_SIMILARITY_OUTPUT_KEYS:
+            raise ValidationException(ValidationErrorMessage.UNEXPECTED_KEYS_IN_DICT.format(name),
+                                      ValidationErrorCode.KEY_ERROR_EXCEPTION_CODE)
+
+    # Validate max_similarity_percentage
+    max_similarity_percentage = trace_similarity_output['max_similarity_percentage']
+    DataValidationUtils.check_int_or_float(max_similarity_percentage, "max_similarity_percentage")
+
+    if not (0 <= max_similarity_percentage <= 100):
+        raise ValidationException(ValidationErrorMessage.INCORRECT_SIMILARITY_PERCENTAGE,
+                                    ValidationErrorCode.VALUE_EXCEPTION_CODE)
+
+    # Validate metadata
+    length_trace_1 = len(trace_1_array)
+    length_trace_2 = len(trace_2_array)
+    _validate_metadata(trace_similarity_output["metadata"], length_trace_1, length_trace_2, name="metadata")
+

@@ -7,6 +7,62 @@ from .utils import convert_unix_timestamp_to_human_readable, \
                    convert_time_interval_to_human_readable
 
 
+def _add_static_text_on_dual_map(dual_map, left_text, right_text):
+    """
+    Add static text to both maps in a Folium DualMap.
+
+    Parameters:
+    - dual_map: The Folium DualMap object.
+    - left_text: The string of text to display on the left map.
+    - right_text: The string of text to display on the right map.
+    """
+
+    # Define the JavaScript and CSS for the left map text
+    left_text_html = f"""
+    <script>
+        var leftTextDiv = document.createElement('div');
+        leftTextDiv.style.position = 'fixed';
+        leftTextDiv.style.top = '10px';
+        leftTextDiv.style.left = 'calc(50% - 290px)';
+        leftTextDiv.style.left = 'calc(25%)';
+        leftTextDiv.style.width = '220px';
+        leftTextDiv.style.height = 'auto';
+        leftTextDiv.style.backgroundColor = 'white';
+        leftTextDiv.style.zIndex = '9999';
+        leftTextDiv.style.fontSize = '13px';
+        leftTextDiv.style.padding = '5px';  /* Add padding for better aesthetics */
+        leftTextDiv.style.border = '1px solid grey';  /* Optional border for clarity */
+        leftTextDiv.innerHTML = '<p>{left_text}</p>';
+        document.body.appendChild(leftTextDiv);
+    </script>
+    """
+
+    # Define the JavaScript and CSS for the right map text
+    right_text_html = f"""
+    <script>
+        var rightTextDiv = document.createElement('div');
+        rightTextDiv.style.position = 'fixed';
+        rightTextDiv.style.top = '10px';
+        rightTextDiv.style.left = 'calc(100% - 290px)';
+        rightTextDiv.style.left = 'calc(75%)';
+        rightTextDiv.style.width = '220px';
+        rightTextDiv.style.height = 'auto';
+        rightTextDiv.style.backgroundColor = 'white';
+        rightTextDiv.style.zIndex = '9999';
+        rightTextDiv.style.fontSize = '13px';
+        rightTextDiv.style.padding = '5px';  /* Add padding for better aesthetics */
+        rightTextDiv.style.border = '1px solid grey';  /* Optional border for clarity */
+        rightTextDiv.innerHTML = '<p>{right_text}</p>';
+        document.body.appendChild(rightTextDiv);
+    </script>
+    """
+
+    # Add the static text to the DualMap
+    dual_map.get_root().html.add_child(fl.Element(left_text_html))
+    dual_map.get_root().html.add_child(fl.Element(right_text_html))
+    return dual_map
+
+
 def create_general_popup(info_dict: dict,
                          width=350,
                          height=150,
@@ -560,3 +616,101 @@ def plot_stop_comparison_map(left_hand_trace,
     fl.LayerControl().add_to(map_object)
 
     return map_object
+
+
+def _plot_trace_in_feature_group(trace, 
+                                 name="Trace", 
+                                 color="red", 
+                                 show=False):
+    """
+    Adds a geographical trace as a polyline to a folium FeatureGroup.
+
+    This function generates a folium FeatureGroup that contains a polyline representing the provided trace.
+    The FeatureGroup can be added to a folium map, where it appears as a selectable layer in the map's layer control.
+
+    Args:
+        trace (list): A list of geographical points defining the trace. Each point should be a list in the format [latitude, longitude, ...].
+            Only the latitude and longitude (first two elements) are used for plotting.
+        name (str, optional): The name of the FeatureGroup. This name will be displayed in the map's layer control.
+            Defaults to "Trace".
+        color (str, optional): The color of the polyline representing the trace. Accepts any valid CSS color name or HEX code.
+            Defaults to "red".
+        show (bool, optional): Determines if the FeatureGroup is visible by default when added to the map.
+            Defaults to False.
+
+    Returns:
+        folium.FeatureGroup: A folium FeatureGroup containing the polyline representation of the trace.
+    """
+    
+    feature_group = fl.FeatureGroup(name=name, show=show)
+
+    # Add the trace as a PolyLine to the FeatureGroup
+    if trace:
+        location_trace = [ping[:2] for ping in trace]
+        fl.PolyLine(location_trace, color=color, weight=5, opacity=0.7).add_to(feature_group)
+    
+    return feature_group
+
+
+def plot_trace_overlap_map(trace_1, 
+                           trace_2, 
+                           similarity_percentage_trace_1_to_2, 
+                           similarity_percentage_trace_2_to_1,):
+    """
+    Creates a Folium DualMap to visualize two traces.
+
+    This function generates a DualMap with two synchronized maps, where one highlights `trace_1` and the other highlights `trace_2`. 
+    Layers for each trace and their overlaps can be toggled using the map's layer control.
+
+    Args:
+        trace_1 (np.array): The first trace as list of list, where each sublist represents [latitude, longitude, timestamp].
+                            Here, latitude and longitude are in decimal degrees, and timestamp is in milliseconds.
+        trace_2 (np.array): The second trace as list of list, where each sublist represents [latitude, longitude, timestamp].
+                            Here, latitude and longitude are in decimal degrees, and timestamp is in milliseconds.
+        similarity_percentage_trace_1_to_2 (float): Percentage of pings in `trace_1` overlapping with `trace_2`
+        similarity_percentage_trace_2_to_1 (float): Percentage of pings in `trace_2` overlapping with `trace_1`
+
+    Returns:
+        folium.plugins.DualMap: A DualMap object with the two traces, their overlapping points, and a layer control for toggling visibility.
+    """
+
+    # Find starting location for map
+    trace_1_representative_location = (np.mean(trace_1[:, 0]), np.mean(trace_1[:, 1]))
+    trace_2_representative_location = (np.mean(trace_2[:, 0]), np.mean(trace_2[:, 1]))
+    representative_loc_for_both_traces = ((trace_1_representative_location[0] + trace_2_representative_location[0]) / 2,
+                                            (trace_1_representative_location[1] + trace_2_representative_location[1]) / 2 )
+
+    # Initialize a Folium map centered around the specified location
+    trace_dual_map = fl.plugins.DualMap(location=representative_loc_for_both_traces, zoom_start=15, control_scale=True, max_zoom=50)
+
+    # Add the first trace to both maps, controlling visibility
+    _plot_trace_in_feature_group(trace_1.tolist(), 
+                                 name="Trace 1", 
+                                 color="red", 
+                                 show=True).add_to(trace_dual_map.m1)
+    
+    _plot_trace_in_feature_group(trace_1.tolist(), 
+                                 name="Trace 1", 
+                                 color="red", 
+                                 show=False).add_to(trace_dual_map.m2)
+
+    # Add the second trace to both maps, controlling visibility
+    _plot_trace_in_feature_group(trace_2.tolist(), 
+                                 name="Trace 2", 
+                                 color="blue", 
+                                 show=False).add_to(trace_dual_map.m1)
+    
+    _plot_trace_in_feature_group(trace_2.tolist(), 
+                                 name="Trace 2", 
+                                 color="blue", 
+                                 show=True).add_to(trace_dual_map.m2)
+
+    left_text  = f"<div><b>Trace Similarity (T1, T2)</b>: {similarity_percentage_trace_1_to_2} %</div>"
+    right_text = f"<div><b>Trace Similarity (T2, T1)</b>: {similarity_percentage_trace_2_to_1} %</div>"
+
+    trace_dual_map = _add_static_text_on_dual_map(trace_dual_map, left_text, right_text)
+
+    # Add layer control to the map
+    fl.LayerControl().add_to(trace_dual_map)
+
+    return trace_dual_map

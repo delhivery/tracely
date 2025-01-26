@@ -221,6 +221,25 @@ CLEANING_OUTPUT_KEYS = [
 ]
 
 
+TRACE_SIMILARITY_OUTPUT_KEYS = [
+    "max_similarity_percentage",
+    "metadata",
+    "plot"
+]
+
+
+TRACE_SIMILARITY_OUTPUT_METADATA_KEYS = [
+    "similarity_info_trace_1_to_2",
+    "similarity_info_trace_2_to_1"
+]
+
+
+TRACE_SIMILARITY_OUTPUT_METADATA_INDIVIDUAL_TRACE_SIM_INFO_KEYS = [
+    "similarity_percentage",
+    "overlapping_pings_indices"
+]
+
+
 #########################
 # Interpolation constants
 #########################

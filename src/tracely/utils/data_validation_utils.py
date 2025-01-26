@@ -533,7 +533,7 @@ class DataValidationUtils:
         """
         
         ping_ids = []
-        at_least_one_ping_with_not_null_coord = False
+        at_least_one_ping_with_non_null_coord = False
         # Validate each ping
         for ping_dict in trace:
             DataValidationUtils.validate_ping(ping_dict)
@@ -542,9 +542,9 @@ class DataValidationUtils:
                 ping_ids.append(ping_dict["ping_id"])
 
             if isinstance(ping_dict["latitude"], (int, float)) and isinstance(ping_dict["latitude"], (int, float)):
-                at_least_one_ping_with_not_null_coord = True
+                at_least_one_ping_with_non_null_coord = True
 
-        if not at_least_one_ping_with_not_null_coord:
+        if not at_least_one_ping_with_non_null_coord:
             raise ValidationException(ValidationErrorMessage.ALL_COORDS_NONE,
                                       ValidationErrorCode.VALUE_EXCEPTION_CODE)
 
@@ -795,3 +795,82 @@ class DataValidationUtils:
         DataValidationUtils.check_bool(force_retain_event_types, "force_retain_event_types")
         DataValidationUtils.check_strictly_positive_int_or_float(vehicle_speed, "vehicle_speed")
         
+    @staticmethod
+    def _validate_trace_for_similarity_calculation(trace):
+        """
+        Validate trace for calculate_trace_similarity function in trace_similarity module.
+
+        Raises:
+            ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If latitude in a ping is not of data type int, float or None.
+            ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If longitude in a ping is not of data type int, float or None.
+            ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If `trace` is not of data type list.
+            ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If a ping in `trace` is not of data type list.
+
+            ValidationException (VALUE_EXCEPTION_CODE: 4003): If `trace` is an empty list.
+            ValidationException (VALUE_EXCEPTION_CODE: 4003): If a ping in `trace` is an empty list.
+            ValidationException (VALUE_EXCEPTION_CODE: 4003): If all pings in `trace` have null coordinates.
+
+            ValidationException (INVALID_TIME_EXCEPTION_CODE: 4004): If timestamp in ping is not an integer or not in range [0, 2145916800000].
+
+            ValidationException (INVALID_COORDS_EXCEPTION_CODE: 4005): If latitude in a ping is not in range [-90 to 90].
+            ValidationException (INVALID_COORDS_EXCEPTION_CODE: 4005): If longitude in a ping is not in range [-180 to 180].
+        """
+
+        DataValidationUtils.check_empty_list(trace, "trace")
+
+        at_least_one_ping_with_non_null_coord = False
+
+        for ping in trace:
+            # Check if ping is an empty list
+            DataValidationUtils.check_empty_list(ping, "ping")
+
+            # Check presence of 3 elements corresponding to latitude, longitude and timestamp
+            if len(ping) != 3:
+                raise ValidationException(ValidationErrorMessage.INVALID_LENGTH_OF_PING_FOR_OVERLAP_ESTIMATION,
+                                          ValidationErrorCode.VALUE_EXCEPTION_CODE)
+
+            if isinstance(ping[0], (int, float)) and isinstance(ping[1], (int, float)):
+                at_least_one_ping_with_non_null_coord = True
+
+            # Validate latitude, longitude, timestamp
+            DataValidationUtils.check_latitude(ping[0], "latitude")
+            DataValidationUtils.check_longitude(ping[1], "longitude")
+            DataValidationUtils.check_timestamp(ping[2], "timestamp")
+            
+        # Check if there is at least one ping with non null coordinates
+        if not at_least_one_ping_with_non_null_coord:
+            raise ValidationException(ValidationErrorMessage.ALL_COORDS_NONE,
+                                      ValidationErrorCode.VALUE_EXCEPTION_CODE)
+
+    @staticmethod
+    def validate_calculate_trace_similarity_parameters(trace_1,
+                                                       trace_2,
+                                                       distance_threshold,
+                                                       time_threshold,
+                                                       plot_map):
+        """
+        Validate parameters for calculate_trace_similarity function in trace_similarity module.
+
+        Raises:
+            ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If `distance_threshold` is not of data type int or float.
+            ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If `time_threshold` is not of data type int.
+            ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If `plot_map` is not of data type bool.
+
+            ValidationException (VALUE_EXCEPTION_CODE: 4003): If `distance_threshold` is negative.
+            ValidationException (VALUE_EXCEPTION_CODE: 4003): If `time_threshold` is negative.
+            
+            All exceptions raised by the following functions:
+                "DataValidationUtils._validate_trace_for_similarity_calculation" present in data_validation_utils.py  
+        """
+
+        # Validate traces
+        DataValidationUtils._validate_trace_for_similarity_calculation(trace_1)
+        DataValidationUtils._validate_trace_for_similarity_calculation(trace_2)
+
+        # Validate thresholds
+        DataValidationUtils.check_non_negative_int_or_float(distance_threshold, "distance_threshold")
+        DataValidationUtils.check_timestamp(time_threshold, "time_threshold")
+
+        # Validate options
+        DataValidationUtils.check_bool(plot_map, "plot_map")
+

@@ -11,8 +11,7 @@ from .utils.data_validation_utils import DataValidationUtils
 from .utils.utils import get_haversine_distance, \
                          calculate_change_in_direction, \
                          convert_unix_timestamp_to_human_readable, \
-                         convert_time_interval_to_human_readable, \
-                         calculate_trace_distance
+                         convert_time_interval_to_human_readable
 
 from .utils.plotting_utils import plot_raw_trace_from_trace_output, \
                                   plot_clean_trace_from_trace_output, \

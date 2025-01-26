@@ -1,12 +1,18 @@
 import re
 import copy
+import json
 import pytest
 from unittest.mock import patch
 
 from src.tracely import constants
 from src.tracely.clean_trace import CleanTrace
+from src.tracely.trace_similarity import calculate_trace_similarity
 from src.tracely.exceptions.custom_exceptions import ValidationException
-from tests.testing_utils import load_trace_payload
+from tests.testing_utils import load_trace_payload, \
+                                load_calculate_trace_similarity_payloads, \
+                                generate_dummy_trace
+
+from src.tracely.utils.output_validation_utils import validate_trace_similarity_output
 
 
 valid_output_trace = {
@@ -59,6 +65,26 @@ valid_output_trace = {
     "stop_event_percentage": 0.0}}
     }
 
+valid_trace_similarity_output = {
+    'max_similarity_percentage': 76.41,
+    'metadata': {'similarity_info_trace_1_to_2': 
+                    {'similarity_percentage': 71.79,
+                     'overlapping_pings_indices': [[52, 0],
+                                                   [53, 4],
+                                                   [54, 4],
+                                                   [55, 4],
+                                                   [56, 4],
+                                                   [57, 4]]},
+                 'similarity_info_trace_2_to_1': 
+                    {'similarity_percentage': 76.41,
+                     'overlapping_pings_indices': [[0, 52],
+                                                   [1, 52],
+                                                   [2, 52],
+                                                   [3, 52],
+                                                   [4, 54],
+                                                   [5, 54],]}},
+    "plot": None
+    }
 
 #################################################
 # Check missing mandatory keys
@@ -1306,3 +1332,572 @@ def test_incorrect_count_of_pings_in_cleaning_summary():
     with patch.object(CleanTrace, "_create_output_cleaning_summary", return_value=cleaning_summary_copy):
         with pytest.raises(ValidationException, match=expected_error_msg):
             trace_cleaning_output = trace_data_obj.get_trace_cleaning_output()
+
+
+def test_validate_trace_similarity_output_with_invalid_trace_similarity_output_dtype():
+    """Test case when trace similarity output is of invalid datatype"""
+
+    expected_error_msg = re.escape('("trace_similarity_output must be of type Dict but found <class \'list\'>", 4002)')
+
+    # Create dummy traces
+    dummy_trace_for_validation_function_1 = generate_dummy_trace(100)
+    dummy_trace_for_validation_function_2 = generate_dummy_trace(100)
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        validate_trace_similarity_output([], 
+                                         dummy_trace_for_validation_function_1, 
+                                         dummy_trace_for_validation_function_2)
+
+
+def test_validate_trace_similarity_output_with_empty_trace_similarity_output():
+    """Test case when trace similarity output is empty dict"""
+
+    expected_error_msg = re.escape("('trace_similarity_output cannot be an empty dictionary', 4002)")
+
+    # Create dummy traces
+    dummy_trace_for_validation_function_1 = generate_dummy_trace(100)
+    dummy_trace_for_validation_function_2 = generate_dummy_trace(100)
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        validate_trace_similarity_output({}, 
+                                         dummy_trace_for_validation_function_1, 
+                                         dummy_trace_for_validation_function_2)
+
+
+def test_validate_trace_similarity_output_with_sim_percentage_missing():
+    """Test case when trace similarity output is missing max_similarity_percentage"""
+
+    expected_error_msg = re.escape('("Expected key: \'max_similarity_percentage\' missing from the dictionary", 4001)')
+
+    # Create dummy traces
+    dummy_trace_for_validation_function_1 = generate_dummy_trace(100)
+    dummy_trace_for_validation_function_2 = generate_dummy_trace(100)
+
+    invalid_trace_similarity_output = copy.deepcopy(valid_trace_similarity_output)
+    invalid_trace_similarity_output.pop("max_similarity_percentage")
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        validate_trace_similarity_output(invalid_trace_similarity_output, 
+                                         dummy_trace_for_validation_function_1, 
+                                         dummy_trace_for_validation_function_2)
+
+
+def test_validate_trace_similarity_output_with_metadata_missing():
+    """Test case when trace similarity output is missing metadata"""
+
+    expected_error_msg = re.escape('("Expected key: \'metadata\' missing from the dictionary", 4001)')
+
+    # Create dummy traces
+    dummy_trace_for_validation_function_1 = generate_dummy_trace(100)
+    dummy_trace_for_validation_function_2 = generate_dummy_trace(100)
+
+    invalid_trace_similarity_output = copy.deepcopy(valid_trace_similarity_output)
+    invalid_trace_similarity_output.pop("metadata")
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        validate_trace_similarity_output(invalid_trace_similarity_output,
+                                         dummy_trace_for_validation_function_1, 
+                                         dummy_trace_for_validation_function_2)
+
+
+def test_validate_trace_similarity_output_with_unexpected_key():
+    """Test case when trace similarity output is having unexpected key"""
+
+    expected_error_msg = re.escape("('Unexpected key provided in trace_similarity_output dictionary', 4001)")
+
+    # Create dummy traces
+    dummy_trace_for_validation_function_1 = generate_dummy_trace(100)
+    dummy_trace_for_validation_function_2 = generate_dummy_trace(100)
+
+    invalid_trace_similarity_output = copy.deepcopy(valid_trace_similarity_output)
+    invalid_trace_similarity_output["unexpected_key"] = 0
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        validate_trace_similarity_output(invalid_trace_similarity_output,
+                                         dummy_trace_for_validation_function_1, 
+                                         dummy_trace_for_validation_function_2)
+
+
+def test_validate_trace_similarity_output_with_invalid_sim_percentage_dtype():
+    """Test case when max_similarity_percentage in trace similarity output is of invalid datatype"""
+
+    expected_error_msg = re.escape('("max_similarity_percentage must be of type Int or Float but found <class \'str\'>", 4002)')
+
+    # Create dummy traces
+    dummy_trace_for_validation_function_1 = generate_dummy_trace(100)
+    dummy_trace_for_validation_function_2 = generate_dummy_trace(100)
+
+    invalid_trace_similarity_output = copy.deepcopy(valid_trace_similarity_output)
+    invalid_trace_similarity_output['max_similarity_percentage'] = "invalid_int"
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        validate_trace_similarity_output(invalid_trace_similarity_output,
+                                         dummy_trace_for_validation_function_1, 
+                                         dummy_trace_for_validation_function_2)
+
+
+def test_validate_trace_similarity_output_with_out_of_range_similarity_percentage():
+    """Test case when max_similarity_percentage in trace similarity output is out of valid range"""
+
+    expected_error_msg = re.escape("('similarity percentage for similarity between 2 traces must be in range [0, 100]', 4003)")
+
+    # Create dummy traces
+    dummy_trace_for_validation_function_1 = generate_dummy_trace(100)
+    dummy_trace_for_validation_function_2 = generate_dummy_trace(100)
+
+    invalid_trace_similarity_output = copy.deepcopy(valid_trace_similarity_output)
+    invalid_trace_similarity_output['max_similarity_percentage'] = 101
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        validate_trace_similarity_output(invalid_trace_similarity_output, 
+                                         dummy_trace_for_validation_function_1, 
+                                         dummy_trace_for_validation_function_2)
+
+
+def test_validate_trace_similarity_output_with_negative_similarity_percentage():
+    """Test case when max_similarity_percentage in trace similarity output is negative"""
+
+    expected_error_msg = re.escape("('similarity percentage for similarity between 2 traces must be in range [0, 100]', 4003)")
+
+    # Create dummy traces
+    dummy_trace_for_validation_function_1 = generate_dummy_trace(100)
+    dummy_trace_for_validation_function_2 = generate_dummy_trace(100)
+
+    invalid_trace_similarity_output = copy.deepcopy(valid_trace_similarity_output)
+    invalid_trace_similarity_output['max_similarity_percentage'] = -1
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        validate_trace_similarity_output(invalid_trace_similarity_output, 
+                                         dummy_trace_for_validation_function_1, 
+                                         dummy_trace_for_validation_function_2)
+
+
+def test_validate_trace_similarity_output_with_invalid_metadata_dtype():
+    """Test case when metadata in trace similarity output is of invalid dtype"""
+
+    expected_error_msg = re.escape('("metadata must be of type Dict but found <class \'str\'>", 4002)')
+
+    # Create dummy traces
+    dummy_trace_for_validation_function_1 = generate_dummy_trace(100)
+    dummy_trace_for_validation_function_2 = generate_dummy_trace(100)
+
+    invalid_trace_similarity_output = copy.deepcopy(valid_trace_similarity_output)
+    invalid_trace_similarity_output['metadata'] = "invalid_dict"
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        validate_trace_similarity_output(invalid_trace_similarity_output, 
+                                         dummy_trace_for_validation_function_1, 
+                                         dummy_trace_for_validation_function_2)
+
+
+def test_validate_trace_similarity_output_with_empty_metadata_dict():
+    """Test case when metadata in trace similarity output is empty dictionary"""
+
+    expected_error_msg = re.escape("('metadata cannot be an empty dictionary', 4002)")
+
+    # Create dummy traces
+    dummy_trace_for_validation_function_1 = generate_dummy_trace(100)
+    dummy_trace_for_validation_function_2 = generate_dummy_trace(100)
+
+    invalid_trace_similarity_output = copy.deepcopy(valid_trace_similarity_output)
+    invalid_trace_similarity_output['metadata'] = {}
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        validate_trace_similarity_output(invalid_trace_similarity_output, 
+                                         dummy_trace_for_validation_function_1, 
+                                         dummy_trace_for_validation_function_2)
+        
+
+def test_validate_trace_similarity_output_with_t1t2_missing_in_metadata():
+    """Test case when metadata in trace similarity output is missing similarity_info_trace_1_to_2 key"""
+
+    expected_error_msg = re.escape('("Expected key: \'similarity_info_trace_1_to_2\' missing from the dictionary", 4001)')
+
+    # Create dummy traces
+    dummy_trace_for_validation_function_1 = generate_dummy_trace(100)
+    dummy_trace_for_validation_function_2 = generate_dummy_trace(100)
+
+    invalid_trace_similarity_output = copy.deepcopy(valid_trace_similarity_output)
+    invalid_trace_similarity_output["metadata"].pop("similarity_info_trace_1_to_2")
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        validate_trace_similarity_output(invalid_trace_similarity_output, 
+                                         dummy_trace_for_validation_function_1, 
+                                         dummy_trace_for_validation_function_2)
+
+
+def test_validate_trace_similarity_output_with_t2t1_missing_in_metadata():
+    """Test case when metadata in trace similarity output is missing similarity_info_trace_2_to_1 key"""
+
+    expected_error_msg = re.escape('("Expected key: \'similarity_info_trace_2_to_1\' missing from the dictionary", 4001)')
+
+    # Create dummy traces
+    dummy_trace_for_validation_function_1 = generate_dummy_trace(100)
+    dummy_trace_for_validation_function_2 = generate_dummy_trace(100)
+
+    invalid_trace_similarity_output = copy.deepcopy(valid_trace_similarity_output)
+    invalid_trace_similarity_output["metadata"].pop("similarity_info_trace_2_to_1")
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        validate_trace_similarity_output(invalid_trace_similarity_output, 
+                                         dummy_trace_for_validation_function_1, 
+                                         dummy_trace_for_validation_function_2)
+
+
+def test_validate_trace_similarity_output_with_unexpected_key_in_metadata():
+    """Test case when metadata in trace similarity output contains unexpected key"""
+
+    expected_error_msg = re.escape("('Unexpected key provided in metadata dictionary', 4001)")
+
+    # Create dummy traces
+    dummy_trace_for_validation_function_1 = generate_dummy_trace(100)
+    dummy_trace_for_validation_function_2 = generate_dummy_trace(100)
+
+    invalid_trace_similarity_output = copy.deepcopy(valid_trace_similarity_output)
+    invalid_trace_similarity_output["metadata"]["unexpected_key"] = 0
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        validate_trace_similarity_output(invalid_trace_similarity_output, 
+                                         dummy_trace_for_validation_function_1, 
+                                         dummy_trace_for_validation_function_2)
+
+
+def test_validate_trace_similarity_output_with_invalid_sim_percentage_dtype_in_t2t1_metadata():
+    """Test case when similarity_percentage in similarity_info_trace_2_to_1 of trace similarity output is of invalid datatype"""
+
+    expected_error_msg = re.escape('("similarity_percentage must be of type Int or Float but found <class \'str\'>", 4002)')
+
+    # Create dummy traces
+    dummy_trace_for_validation_function_1 = generate_dummy_trace(100)
+    dummy_trace_for_validation_function_2 = generate_dummy_trace(100)
+
+    invalid_trace_similarity_output = copy.deepcopy(valid_trace_similarity_output)
+    invalid_trace_similarity_output["metadata"]["similarity_info_trace_2_to_1"]['similarity_percentage'] = "invalid_int"
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        validate_trace_similarity_output(invalid_trace_similarity_output, 
+                                         dummy_trace_for_validation_function_1, 
+                                         dummy_trace_for_validation_function_2)
+
+
+def test_validate_trace_similarity_output_with_out_of_range_similarity_percentage_in_t2t1_metadata():
+    """Test case when similarity_percentage in similarity_info_trace_2_to_1 of trace similarity output is out of valid range"""
+
+    expected_error_msg = re.escape("('similarity percentage for similarity between 2 traces must be in range [0, 100]', 4003)")
+
+    # Create dummy traces
+    dummy_trace_for_validation_function_1 = generate_dummy_trace(100)
+    dummy_trace_for_validation_function_2 = generate_dummy_trace(100)
+
+    invalid_trace_similarity_output = copy.deepcopy(valid_trace_similarity_output)
+    invalid_trace_similarity_output["metadata"]["similarity_info_trace_2_to_1"]['similarity_percentage'] = 101
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        validate_trace_similarity_output(invalid_trace_similarity_output, 
+                                         dummy_trace_for_validation_function_1, 
+                                         dummy_trace_for_validation_function_2)
+
+
+def test_validate_trace_similarity_output_with_negative_similarity_percentage_in_t2t1_metadata():
+    """Test case when similarity_percentage in similarity_info_trace_2_to_1 of trace similarity output is negative"""
+
+    expected_error_msg = re.escape("('similarity percentage for similarity between 2 traces must be in range [0, 100]', 4003)")
+
+    # Create dummy traces
+    dummy_trace_for_validation_function_1 = generate_dummy_trace(100)
+    dummy_trace_for_validation_function_2 = generate_dummy_trace(100)
+
+    invalid_trace_similarity_output = copy.deepcopy(valid_trace_similarity_output)
+    invalid_trace_similarity_output["metadata"]["similarity_info_trace_2_to_1"]['similarity_percentage'] = -1
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        validate_trace_similarity_output(invalid_trace_similarity_output, 
+                                         dummy_trace_for_validation_function_1, 
+                                         dummy_trace_for_validation_function_2)
+
+
+def test_validate_trace_similarity_output_with_invalid_sim_percentage_dtype_in_t1t2_metadata():
+    """Test case when similarity_percentage in similarity_info_trace_1_to_2 of trace similarity output is of invalid datatype"""
+
+    expected_error_msg = re.escape('("similarity_percentage must be of type Int or Float but found <class \'str\'>", 4002)')
+
+    # Create dummy traces
+    dummy_trace_for_validation_function_1 = generate_dummy_trace(100)
+    dummy_trace_for_validation_function_2 = generate_dummy_trace(100)
+
+    invalid_trace_similarity_output = copy.deepcopy(valid_trace_similarity_output)
+    invalid_trace_similarity_output["metadata"]["similarity_info_trace_1_to_2"]['similarity_percentage'] = "invalid_int"
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        validate_trace_similarity_output(invalid_trace_similarity_output, 
+                                         dummy_trace_for_validation_function_1, 
+                                         dummy_trace_for_validation_function_2)
+
+
+def test_validate_trace_similarity_output_with_out_of_range_similarity_percentage_in_t1t2_metadata():
+    """Test case when similarity_percentage in similarity_info_trace_1_to_2 of trace similarity output is out of valid range"""
+
+    expected_error_msg = re.escape("('similarity percentage for similarity between 2 traces must be in range [0, 100]', 4003)")
+
+    # Create dummy traces
+    dummy_trace_for_validation_function_1 = generate_dummy_trace(100)
+    dummy_trace_for_validation_function_2 = generate_dummy_trace(100)
+
+    invalid_trace_similarity_output = copy.deepcopy(valid_trace_similarity_output)
+    invalid_trace_similarity_output["metadata"]["similarity_info_trace_1_to_2"]['similarity_percentage'] = 101
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        validate_trace_similarity_output(invalid_trace_similarity_output, 
+                                         dummy_trace_for_validation_function_1, 
+                                         dummy_trace_for_validation_function_2)
+
+
+def test_validate_trace_similarity_output_with_negative_similarity_percentage_in_t1t2_metadata():
+    """Test case when similarity_percentage in similarity_info_trace_1_to_2 of trace similarity output is negative"""
+
+    expected_error_msg = re.escape("('similarity percentage for similarity between 2 traces must be in range [0, 100]', 4003)")
+
+    # Create dummy traces
+    dummy_trace_for_validation_function_1 = generate_dummy_trace(100)
+    dummy_trace_for_validation_function_2 = generate_dummy_trace(100)
+
+    invalid_trace_similarity_output = copy.deepcopy(valid_trace_similarity_output)
+    invalid_trace_similarity_output["metadata"]["similarity_info_trace_1_to_2"]['similarity_percentage'] = -1
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        validate_trace_similarity_output(invalid_trace_similarity_output, 
+                                         dummy_trace_for_validation_function_1, 
+                                         dummy_trace_for_validation_function_2)
+
+
+def test_validate_trace_similarity_output_with_invalid_indices_list_in_t1t2_metadata():
+    """Test case when overlapping_pings_indices in similarity_info_trace_1_to_2 of trace similarity output is of invalid type"""
+
+    expected_error_msg = re.escape('("overlapping_pings_indices must be of type List but found <class \'int\'>", 4002)')
+
+    # Create dummy traces
+    dummy_trace_for_validation_function_1 = generate_dummy_trace(100)
+    dummy_trace_for_validation_function_2 = generate_dummy_trace(100)
+
+    invalid_trace_similarity_output = copy.deepcopy(valid_trace_similarity_output)
+    invalid_trace_similarity_output["metadata"]["similarity_info_trace_1_to_2"]["overlapping_pings_indices"] = 0
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        validate_trace_similarity_output(invalid_trace_similarity_output, 
+                                         dummy_trace_for_validation_function_1, 
+                                         dummy_trace_for_validation_function_2)
+
+
+def test_validate_trace_similarity_output_with_missing_indices_list_in_t1t2_metadata():
+    """Test case when overlapping_pings_indices in similarity_info_trace_1_to_2 of trace similarity output is missing"""
+
+    expected_error_msg = re.escape('("Expected key: \'overlapping_pings_indices\' missing from the dictionary", 4001)')
+
+    # Create dummy traces
+    dummy_trace_for_validation_function_1 = generate_dummy_trace(100)
+    dummy_trace_for_validation_function_2 = generate_dummy_trace(100)
+
+    invalid_trace_similarity_output = copy.deepcopy(valid_trace_similarity_output)
+    invalid_trace_similarity_output["metadata"]["similarity_info_trace_1_to_2"].pop("overlapping_pings_indices")
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        validate_trace_similarity_output(invalid_trace_similarity_output, 
+                                         dummy_trace_for_validation_function_1, 
+                                         dummy_trace_for_validation_function_2)
+
+
+def test_validate_trace_similarity_output_with_invalid_indices_list_in_t2t1_metadata():
+    """Test case when overlapping_pings_indices in similarity_info_trace_2_to_1 of trace similarity output is of invalid type"""
+
+    expected_error_msg = re.escape('("overlapping_pings_indices must be of type List but found <class \'int\'>", 4002)')
+
+    # Create dummy traces
+    dummy_trace_for_validation_function_1 = generate_dummy_trace(100)
+    dummy_trace_for_validation_function_2 = generate_dummy_trace(100)
+
+    invalid_trace_similarity_output = copy.deepcopy(valid_trace_similarity_output)
+    invalid_trace_similarity_output["metadata"]["similarity_info_trace_2_to_1"]["overlapping_pings_indices"] = 0
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        validate_trace_similarity_output(invalid_trace_similarity_output, 
+                                         dummy_trace_for_validation_function_1, 
+                                         dummy_trace_for_validation_function_2)
+
+
+def test_validate_trace_similarity_output_with_missing_indices_list_in_t2t1_metadata():
+    """Test case when overlapping_pings_indices in similarity_info_trace_2_to_1 of trace similarity output is missing"""
+
+    expected_error_msg = re.escape('("Expected key: \'overlapping_pings_indices\' missing from the dictionary", 4001)')
+
+    # Create dummy traces
+    dummy_trace_for_validation_function_1 = generate_dummy_trace(100)
+    dummy_trace_for_validation_function_2 = generate_dummy_trace(100)
+
+    invalid_trace_similarity_output = copy.deepcopy(valid_trace_similarity_output)
+    invalid_trace_similarity_output["metadata"]["similarity_info_trace_2_to_1"].pop("overlapping_pings_indices")
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        validate_trace_similarity_output(invalid_trace_similarity_output, 
+                                         dummy_trace_for_validation_function_1, 
+                                         dummy_trace_for_validation_function_2)
+
+
+def test_validate_trace_similarity_output_with_invalid_index_pair_list_within_indices_list_in_t2t1_metadata():
+    """Test case when index pair in overlapping_pings_indices in similarity_info_trace_2_to_1 of trace similarity output is of invalid type"""
+
+    expected_error_msg = re.escape('("index_pair must be of type List but found <class \'int\'>", 4002)')
+
+    # Create dummy traces
+    dummy_trace_for_validation_function_1 = generate_dummy_trace(100)
+    dummy_trace_for_validation_function_2 = generate_dummy_trace(100)
+
+    invalid_trace_similarity_output = copy.deepcopy(valid_trace_similarity_output)
+    invalid_trace_similarity_output["metadata"]["similarity_info_trace_2_to_1"]["overlapping_pings_indices"][0] = 0
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        validate_trace_similarity_output(invalid_trace_similarity_output, 
+                                         dummy_trace_for_validation_function_1, 
+                                         dummy_trace_for_validation_function_2)
+
+
+def test_validate_trace_similarity_output_with_invalid_index_pair_list_within_indices_list_in_t1t2_metadata():
+    """Test case when index pair in overlapping_pings_indices in similarity_info_trace_1_to_2 of trace similarity output is of invalid type"""
+
+    expected_error_msg = re.escape('("index_pair must be of type List but found <class \'int\'>", 4002)')
+
+    # Create dummy traces
+    dummy_trace_for_validation_function_1 = generate_dummy_trace(100)
+    dummy_trace_for_validation_function_2 = generate_dummy_trace(100)
+
+    invalid_trace_similarity_output = copy.deepcopy(valid_trace_similarity_output)
+    invalid_trace_similarity_output["metadata"]["similarity_info_trace_1_to_2"]["overlapping_pings_indices"][0] = 0
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        validate_trace_similarity_output(invalid_trace_similarity_output, 
+                                         dummy_trace_for_validation_function_1, 
+                                         dummy_trace_for_validation_function_2)
+
+
+def test_validate_trace_similarity_output_with_incomplete_index_pair_list_within_indices_list_in_t2t1_metadata():
+    """Test case when index pair of overlapping pings in similarity_info_trace_2_to_1 of trace similarity output is incomplete and does not strictly contains only two elements."""
+
+    expected_error_msg = re.escape('("Each index pair in \'overlapping_pings_indices\' must be a list of length 2.", 4003)')
+
+    # Create dummy traces
+    dummy_trace_for_validation_function_1 = generate_dummy_trace(100)
+    dummy_trace_for_validation_function_2 = generate_dummy_trace(100)
+
+    invalid_trace_similarity_output = copy.deepcopy(valid_trace_similarity_output)
+    invalid_trace_similarity_output["metadata"]["similarity_info_trace_2_to_1"]["overlapping_pings_indices"][0] = []
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        validate_trace_similarity_output(invalid_trace_similarity_output, 
+                                         dummy_trace_for_validation_function_1, 
+                                         dummy_trace_for_validation_function_2)
+
+
+def test_validate_trace_similarity_output_with_incomplete_index_pair_list_within_indices_list_in_t1t2_metadata():
+    """Test case when index pair of overlapping pings in similarity_info_trace_1_to_2 of trace similarity output is incomplete and does not strictly contains only two elements."""
+
+    expected_error_msg = re.escape('("Each index pair in \'overlapping_pings_indices\' must be a list of length 2.", 4003)')
+
+    # Create dummy traces
+    dummy_trace_for_validation_function_1 = generate_dummy_trace(100)
+    dummy_trace_for_validation_function_2 = generate_dummy_trace(100)
+
+    invalid_trace_similarity_output = copy.deepcopy(valid_trace_similarity_output)
+    invalid_trace_similarity_output["metadata"]["similarity_info_trace_1_to_2"]["overlapping_pings_indices"][0] = []
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        validate_trace_similarity_output(invalid_trace_similarity_output, 
+                                         dummy_trace_for_validation_function_1, 
+                                         dummy_trace_for_validation_function_2)
+
+
+def test_validate_trace_similarity_output_with_out_of_range_first_index_in_t1t2_overlapping_pings():
+    """Test case when index pair of overlapping pings in similarity_info_trace_1_to_2 has, out of range first index"""
+
+    expected_error_msg = re.escape('("Value of index in \'overlapping_pings_indices\' must non-negative and less than the length of its corresponding trace.", 4003)')
+
+    # Create dummy traces
+    dummy_trace_for_validation_function_1 = generate_dummy_trace(100)
+    dummy_trace_for_validation_function_2 = generate_dummy_trace(100)
+
+    invalid_trace_similarity_output = copy.deepcopy(valid_trace_similarity_output)
+    invalid_trace_similarity_output["metadata"]["similarity_info_trace_1_to_2"]["overlapping_pings_indices"][0] = [-1, 0]
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        validate_trace_similarity_output(invalid_trace_similarity_output, 
+                                         dummy_trace_for_validation_function_1, 
+                                         dummy_trace_for_validation_function_2)
+
+
+def test_validate_trace_similarity_output_with_out_of_range_second_index_in_t1t2_overlapping_pings():
+    """Test case when index pair of overlapping pings in similarity_info_trace_1_to_2 has, out of range second index"""
+
+    expected_error_msg = re.escape('("Value of index in \'overlapping_pings_indices\' must non-negative and less than the length of its corresponding trace.", 4003)')
+
+    # Create dummy traces
+    dummy_trace_for_validation_function_1 = generate_dummy_trace(100)
+    dummy_trace_for_validation_function_2 = generate_dummy_trace(100)
+
+    invalid_trace_similarity_output = copy.deepcopy(valid_trace_similarity_output)
+    invalid_trace_similarity_output["metadata"]["similarity_info_trace_1_to_2"]["overlapping_pings_indices"][0] = [0, -1]
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        validate_trace_similarity_output(invalid_trace_similarity_output, 
+                                         dummy_trace_for_validation_function_1, 
+                                         dummy_trace_for_validation_function_2)
+
+
+def test_validate_trace_similarity_output_with_out_of_range_first_index_in_t2t1_overlapping_pings():
+    """Test case when index pair of overlapping pings in similarity_info_trace_2_to_1 has, out of range first index"""
+
+    expected_error_msg = re.escape('("Value of index in \'overlapping_pings_indices\' must non-negative and less than the length of its corresponding trace.", 4003)')
+
+    # Create dummy traces
+    dummy_trace_for_validation_function_1 = generate_dummy_trace(100)
+    dummy_trace_for_validation_function_2 = generate_dummy_trace(100)
+
+    invalid_trace_similarity_output = copy.deepcopy(valid_trace_similarity_output)
+    invalid_trace_similarity_output["metadata"]["similarity_info_trace_2_to_1"]["overlapping_pings_indices"][0] = [-1, 0]
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        validate_trace_similarity_output(invalid_trace_similarity_output, 
+                                         dummy_trace_for_validation_function_1, 
+                                         dummy_trace_for_validation_function_2)
+
+
+def test_validate_trace_similarity_output_with_out_of_range_second_index_in_t2t1_overlapping_pings():
+    """Test case when index pair of overlapping pings in similarity_info_trace_2_to_1 has, out of range second index"""
+
+    expected_error_msg = re.escape('("Value of index in \'overlapping_pings_indices\' must non-negative and less than the length of its corresponding trace.", 4003)')
+
+    # Create dummy traces
+    dummy_trace_for_validation_function_1 = generate_dummy_trace(100)
+    dummy_trace_for_validation_function_2 = generate_dummy_trace(100)
+
+    invalid_trace_similarity_output = copy.deepcopy(valid_trace_similarity_output)
+    invalid_trace_similarity_output["metadata"]["similarity_info_trace_2_to_1"]["overlapping_pings_indices"][0] = [0, -1]
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        validate_trace_similarity_output(invalid_trace_similarity_output, 
+                                         dummy_trace_for_validation_function_1, 
+                                         dummy_trace_for_validation_function_2)
+
+
+def test_validate_trace_similarity_output_successful_run():
+    """Test validate_trace_similarity_output of valid output, without eny errors"""
+
+    payload = load_calculate_trace_similarity_payloads("large_trace_pair")
+    
+    trace_1 = payload["trace_1"]
+    trace_2 = payload["trace_2"]
+
+    result = calculate_trace_similarity(trace_1, 
+                                        trace_2, 
+                                        distance_threshold = 100, 
+                                        time_threshold = 10000)
+    
+    assert result["max_similarity_percentage"] == 99.76541
+

@@ -205,3 +205,49 @@ clean_trace = clean_output["cleaned_trace"]
 clean_trace_obj.plot_cleaning_comparison_map(raw_trace, clean_trace)
 ```
 
+
+## 4. Tracely has following function related to calculating similarity of two traces:
+
+### 4.1 Calculate Trace Similarity
+
+#### Description
+The `calculate_trace_similarity` function enables users to measure the spatial and temporal similarity between two traces. It identifies overlapping pings within specified distance and time thresholds, computes similarity percentages for both traces, and optionally visualizes the traces and their overlap on a map. Haversine method is used to calculate distance between pings.
+
+#### Parameters
+- **trace_1** *(`list`)*: The first trace, where each ping is represented as `[latitude, longitude, timestamp]`.
+- **trace_2** *(`list`)*: The second trace, where each ping is represented as `[latitude, longitude, timestamp]`.
+- **distance_threshold** *(`float`)*: Maximum distance (in meters) for two pings to be considered overlapping.
+- **time_threshold** *(`int`)*: Maximum allowable time difference (in milliseconds) for two pings to overlap.
+- **plot_map** *(`bool`, optional)*: If `True`, a folium map is generated to visualize the traces. Defaults to `False`.
+
+
+#### Behavior
+The function returns a dictionary:
+- **`max_similarity_percentage`** *(`float`)*: Maximum of similarity percentages calculated between the two traces with respect to each other.
+- **`metadata`** *(`dict`)*:
+  - **`similarity_info_trace_1_to_2`** *(`dict`)*:
+    - **`similarity_percentage`** *(`float`)*: Similarity percentage of `trace_1` with respect to `trace_2`.
+    - **`overlapping_pings_indices`** *(`list`)*: List containing index pairs of overlapping pings in `trace_1` and `trace_2` respectively. Each index pair represents a pair of points such that the ping from `trace_2` is closest to ping from `trace_1` while satisfying the time threshold.
+    
+  - **`similarity_info_trace_2_to_1`** *(`dict`)*:
+    - **`similarity_percentage`** *(`float`)*: Similarity percentage of `trace_2` with respect to `trace_1`.
+    - **`overlapping_pings_indices`** *(`list`)*: List containing index pairs of overlapping pings in `trace_2` and `trace_1` respectively. Each index pair represents a pair of points such that the ping from `trace_1` is closest to ping from `trace_2` while satisfying the time threshold.
+- **`plot`** *(`folium.plugins.DualMap` or None)*: Visualization of traces if `plot_map=True`, otherwise `None`.
+
+
+#### Example
+```python
+from tracely.clean_trace import CleanTrace
+
+# Example traces (list of [latitude, longitude, timestamp])
+trace_1 = [[19.1, 73.0, 1700000000000], [19.2, 73.1, 1700000005000]]
+trace_2 = [[19.15, 73.05, 1700000003000], [19.25, 73.15, 1700000010000]]
+
+# Calculate similarity
+result = CleanTrace.calculate_trace_similarity(trace_1, trace_2, distance_threshold=50, time_threshold=2000, plot_map=False)
+
+# Output
+max_similarity_percentage = result["max_similarity_percentage"]
+metadata = result["metadata"]
+plot = result["plot"]
+```
