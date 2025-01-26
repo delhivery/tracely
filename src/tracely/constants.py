@@ -222,7 +222,7 @@ CLEANING_OUTPUT_KEYS = [
 
 
 TRACE_SIMILARITY_OUTPUT_KEYS = [
-    "similarity_percentage",
+    "max_similarity_percentage",
     "metadata",
     "plot"
 ]

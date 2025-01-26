@@ -9,6 +9,7 @@ import pandas as pd
 from unittest.mock import patch
 
 from src.tracely.clean_trace import CleanTrace
+from src.tracely.trace_similarity import calculate_trace_similarity
 from src.tracely.exceptions.custom_exceptions import ValidationException, InputOutputException, OSRMException
 from src.tracely.utils.utils import get_haversine_distance, \
                                     calculate_trace_distance, \
@@ -1760,10 +1761,10 @@ def test_calculate_trace_similarity_with_invalid_dtype_of_distance_threshold():
     expected_error_msg = re.escape('("distance_threshold must be of type Int or Float but found <class \'str\'>", 4002)')
 
     with pytest.raises(ValidationException, match=expected_error_msg):
-        CleanTrace.calculate_trace_similarity(trace_1, 
-                                              trace_2, 
-                                              distance_threshold = "invalid", # Invalid type: string
-                                              time_threshold = 0)  
+        calculate_trace_similarity(trace_1, 
+                                   trace_2, 
+                                   distance_threshold = "invalid", # Invalid type: string
+                                   time_threshold = 0)  
 
 
 def test_calculate_trace_similarity_with_negative_distance_threshold():
@@ -1777,10 +1778,10 @@ def test_calculate_trace_similarity_with_negative_distance_threshold():
     expected_error_msg = re.escape("('distance_threshold cannot be negative', 4003)")
 
     with pytest.raises(ValidationException, match=expected_error_msg):
-        CleanTrace.calculate_trace_similarity(trace_1, 
-                                              trace_2, 
-                                              distance_threshold = -1, # Invalid value: negative
-                                              time_threshold = 0)  
+        calculate_trace_similarity(trace_1, 
+                                   trace_2, 
+                                   distance_threshold = -1, # Invalid value: negative
+                                   time_threshold = 0)  
 
 
 def test_calculate_trace_similarity_with_invalid_dtype_of_time_threshold():
@@ -1794,10 +1795,11 @@ def test_calculate_trace_similarity_with_invalid_dtype_of_time_threshold():
     expected_error_msg = re.escape('("time_threshold must be of type Int but found <class \'str\'>", 4002)')
 
     with pytest.raises(ValidationException, match=expected_error_msg):
-        CleanTrace.calculate_trace_similarity(trace_1, 
-                                              trace_2, 
-                                              distance_threshold = 0, 
-                                              time_threshold = "invalid")  # Invalid type: string
+        calculate_trace_similarity(trace_1, 
+                                   trace_2, 
+                                   distance_threshold = 0, 
+                                   time_threshold = "invalid" # Invalid type: string
+                                   )
 
 
 def test_calculate_trace_similarity_with_negative_time_threshold():
@@ -1811,10 +1813,11 @@ def test_calculate_trace_similarity_with_negative_time_threshold():
     expected_error_msg = re.escape("('time_threshold must be in milliseconds and unix epoch format within range [0, 2145916800000] but found timestamp = -1', 4004)")
 
     with pytest.raises(ValidationException, match=expected_error_msg):
-        CleanTrace.calculate_trace_similarity(trace_1, 
-                                              trace_2, 
-                                              distance_threshold = 0, # Invalid value: negative
-                                              time_threshold = -1)  
+        calculate_trace_similarity(trace_1, 
+                                   trace_2, 
+                                   distance_threshold = 0,
+                                   time_threshold = -1 # Invalid value: negative
+                                   )  
 
 
 def test_calculate_trace_similarity_with_invalid_dtype_of_plot_map():
@@ -1828,10 +1831,12 @@ def test_calculate_trace_similarity_with_invalid_dtype_of_plot_map():
     expected_error_msg = re.escape('("plot_map must be of type Bool but found <class \'str\'>", 4002)')
 
     with pytest.raises(ValidationException, match=expected_error_msg):
-        CleanTrace.calculate_trace_similarity(trace_1, 
-                                              trace_2, 
-                                              distance_threshold = 1, # Invalid type: string
-                                              time_threshold = 1, plot_map = "invalid")  
+        calculate_trace_similarity(trace_1, 
+                                   trace_2, 
+                                   distance_threshold = 1,
+                                   time_threshold = 1, 
+                                   plot_map = "invalid" # Invalid type: string
+                                   )  
 
 
 def test_calculate_trace_similarity_with_invalid_latitude_type_in_trace():
@@ -1846,10 +1851,10 @@ def test_calculate_trace_similarity_with_invalid_latitude_type_in_trace():
     expected_error_msg = re.escape('("latitude must be of type Int, Float or None but found <class \'str\'>", 4002)')
 
     with pytest.raises(ValidationException, match=expected_error_msg):
-        CleanTrace.calculate_trace_similarity(trace_1, 
-                                              trace_2, 
-                                              distance_threshold = 1, 
-                                              time_threshold = 1)
+        calculate_trace_similarity(trace_1, 
+                                   trace_2, 
+                                   distance_threshold = 1, 
+                                   time_threshold = 1)
 
 
 def test_calculate_trace_similarity_with_invalid_longitude_type_in_trace():
@@ -1864,10 +1869,10 @@ def test_calculate_trace_similarity_with_invalid_longitude_type_in_trace():
     expected_error_msg = re.escape('("longitude must be of type Int, Float or None but found <class \'str\'>", 4002)')
 
     with pytest.raises(ValidationException, match=expected_error_msg):
-        CleanTrace.calculate_trace_similarity(trace_1, 
-                                              trace_2, 
-                                              distance_threshold = 1, 
-                                              time_threshold = 1)  # Invalid type: string
+        calculate_trace_similarity(trace_1, 
+                                   trace_2, 
+                                   distance_threshold = 1, 
+                                   time_threshold = 1)
 
 
 def test_calculate_trace_similarity_with_invalid_timestamp_type_in_trace():
@@ -1882,10 +1887,10 @@ def test_calculate_trace_similarity_with_invalid_timestamp_type_in_trace():
     expected_error_msg = re.escape('("timestamp must be of type Int but found <class \'str\'>", 4002)')
 
     with pytest.raises(ValidationException, match=expected_error_msg):
-        CleanTrace.calculate_trace_similarity(trace_1, 
-                                              trace_2, 
-                                              distance_threshold = 1, 
-                                              time_threshold = 1) 
+        calculate_trace_similarity(trace_1, 
+                                   trace_2, 
+                                   distance_threshold = 1, 
+                                   time_threshold = 1) 
 
 
 def test_calculate_trace_similarity_with_incomplete_trace():
@@ -1897,13 +1902,13 @@ def test_calculate_trace_similarity_with_incomplete_trace():
     trace_1[0] = [0, 0] # Only two elements
     trace_2 = payload["trace_2"]
 
-    expected_error_msg = re.escape("('Input traces must contain latitude, longitude and timestamp for all pings.', 4003)")
+    expected_error_msg = re.escape("('Each ping in input traces must strictly contain 3 elements corresponding to latitude, longitude and timestamp.', 4003)")
 
     with pytest.raises(ValidationException, match=expected_error_msg):
-        CleanTrace.calculate_trace_similarity(trace_1, 
-                                              trace_2, 
-                                              distance_threshold = 1, 
-                                              time_threshold = 1)
+        calculate_trace_similarity(trace_1, 
+                                   trace_2, 
+                                   distance_threshold = 1, 
+                                   time_threshold = 1)
 
 
 def test_calculate_trace_similarity_with_invalid_latitude_value_in_trace():
@@ -1918,10 +1923,10 @@ def test_calculate_trace_similarity_with_invalid_latitude_value_in_trace():
     expected_error_msg = re.escape("('latitude must be within range [-90 to 90] but found latitude = 1000', 4005)")
 
     with pytest.raises(ValidationException, match=expected_error_msg):
-        CleanTrace.calculate_trace_similarity(trace_1, 
-                                              trace_2, 
-                                              distance_threshold = 1, 
-                                              time_threshold = 1) 
+        calculate_trace_similarity(trace_1, 
+                                   trace_2, 
+                                   distance_threshold = 1, 
+                                   time_threshold = 1) 
 
 
 def test_calculate_trace_similarity_with_invalid_longitude_value_in_trace():
@@ -1936,10 +1941,10 @@ def test_calculate_trace_similarity_with_invalid_longitude_value_in_trace():
     expected_error_msg = re.escape("('longitude must be within range [-180 to 180] but found longitude = 1000', 4005)")
 
     with pytest.raises(ValidationException, match=expected_error_msg):
-        CleanTrace.calculate_trace_similarity(trace_1, 
-                                              trace_2, 
-                                              distance_threshold = 1, 
-                                              time_threshold = 1)
+        calculate_trace_similarity(trace_1, 
+                                   trace_2, 
+                                   distance_threshold = 1, 
+                                   time_threshold = 1)
 
 
 def test_calculate_trace_similarity_with_invalid_timestamp_value_in_trace():
@@ -1954,10 +1959,107 @@ def test_calculate_trace_similarity_with_invalid_timestamp_value_in_trace():
     expected_error_msg = re.escape("('timestamp must be in milliseconds and unix epoch format within range [0, 2145916800000] but found timestamp = -1', 4004)")
 
     with pytest.raises(ValidationException, match=expected_error_msg):
-        CleanTrace.calculate_trace_similarity(trace_1, 
-                                              trace_2, 
-                                              distance_threshold = 1, 
-                                              time_threshold = 1)
+        calculate_trace_similarity(trace_1, 
+                                   trace_2, 
+                                   distance_threshold = 1, 
+                                   time_threshold = 1)
+
+
+def test_calculate_trace_similarity_with_only_null_coords_in_trace():
+    """Test for a trace where latitude and longitude are null in all pings of both traces."""
+
+    payload = load_calculate_trace_similarity_payloads("null_trace_pair")
+
+    trace_1 = payload["trace_1"]
+    trace_2 = payload["trace_2"]
+
+    expected_error_msg = re.escape("('Trace should have at least one ping with non null latitude and longitude', 4003)")
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        calculate_trace_similarity(trace_1, 
+                                   trace_2, 
+                                   distance_threshold = 1, 
+                                   time_threshold = 1)
+
+
+def test_calculate_trace_similarity_with_only_null_latitudes_in_trace():
+    """Test for a trace where latitude is null in all pings of both traces."""
+
+    payload = load_calculate_trace_similarity_payloads("null_lat_trace_pair")
+
+    trace_1 = payload["trace_1"]
+    trace_2 = payload["trace_2"]
+
+    expected_error_msg = re.escape("('Trace should have at least one ping with non null latitude and longitude', 4003)")
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        calculate_trace_similarity(trace_1, 
+                                   trace_2, 
+                                   distance_threshold = 1, 
+                                   time_threshold = 1)
+
+
+def test_calculate_trace_similarity_with_only_null_longitudes_in_trace():
+    """Test for a trace where longitude is null in all pings of both traces."""
+
+    payload = load_calculate_trace_similarity_payloads("null_lng_trace_pair")
+
+    trace_1 = payload["trace_1"]
+    trace_2 = payload["trace_2"]
+
+    expected_error_msg = re.escape("('Trace should have at least one ping with non null latitude and longitude', 4003)")
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        calculate_trace_similarity(trace_1, 
+                                   trace_2, 
+                                   distance_threshold = 1, 
+                                   time_threshold = 1)
+
+
+def test_calculate_trace_similarity_with_only_null_coords_in_first_trace():
+    """Test for a trace where latitude and longitude are null in all pings of first trace."""
+
+    null_traces_payload = load_calculate_trace_similarity_payloads("null_trace_pair")
+    trace_1 = null_traces_payload["trace_1"]
+
+    not_null_traces_payload = load_calculate_trace_similarity_payloads("similar_trace_pair")
+    trace_2 = not_null_traces_payload["trace_2"]
+
+    expected_error_msg = re.escape("('Trace should have at least one ping with non null latitude and longitude', 4003)")
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        calculate_trace_similarity(trace_1, 
+                                   trace_2, 
+                                   distance_threshold = 1, 
+                                   time_threshold = 1)
+
+
+def test_calculate_trace_similarity_with_only_one_ping_in_trace():
+    """Test traces with single ping."""
+    payload = load_calculate_trace_similarity_payloads("similar_trace_pair")
+
+    trace_1 = payload["trace_1"][:1]
+    trace_2 = payload["trace_2"][:1]
+
+    result = calculate_trace_similarity(trace_1, 
+                                        trace_2, 
+                                        distance_threshold = 20, 
+                                        time_threshold = 1)
+    assert result["max_similarity_percentage"] == 100.0
+
+
+def test_calculate_trace_similarity_with_only_one_ping_in_first_trace():
+    """Test traces with single ping in first trace."""
+    payload = load_calculate_trace_similarity_payloads("similar_trace_pair")
+
+    trace_1 = payload["trace_1"][:1]
+    trace_2 = payload["trace_2"]
+
+    result = calculate_trace_similarity(trace_1, 
+                                        trace_2, 
+                                        distance_threshold = 20, 
+                                        time_threshold = 1)
+    assert result["max_similarity_percentage"] == 100.0
 
 
 def test_calculate_trace_similarity_with_similar_traces():
@@ -1968,11 +2070,11 @@ def test_calculate_trace_similarity_with_similar_traces():
     trace_1 = payload["trace_1"]
     trace_2 = payload["trace_2"]
 
-    result = CleanTrace.calculate_trace_similarity(trace_1, 
-                                                   trace_2, 
-                                                   distance_threshold = 20, 
-                                                   time_threshold = 1)
-    assert result["similarity_percentage"] == 100.0
+    result = calculate_trace_similarity(trace_1, 
+                                        trace_2, 
+                                        distance_threshold = 20, 
+                                        time_threshold = 1)
+    assert result["max_similarity_percentage"] == 100.0
 
 
 def test_calculate_trace_similarity_with_dissimilar_traces():
@@ -1983,11 +2085,11 @@ def test_calculate_trace_similarity_with_dissimilar_traces():
     trace_1 = payload["trace_1"]
     trace_2 = payload["trace_2"]
 
-    result = CleanTrace.calculate_trace_similarity(trace_1, 
-                                                   trace_2, 
-                                                   distance_threshold = 1, 
-                                                   time_threshold = 1)
-    assert result["similarity_percentage"] == 0.0
+    result = calculate_trace_similarity(trace_1, 
+                                        trace_2, 
+                                        distance_threshold = 1, 
+                                        time_threshold = 1)
+    assert result["max_similarity_percentage"] == 0.0
 
 
 def test_calculate_trace_similarity_with_large_traces():
@@ -1998,11 +2100,11 @@ def test_calculate_trace_similarity_with_large_traces():
     trace_1 = payload["trace_1"]
     trace_2 = payload["trace_2"]
 
-    result = CleanTrace.calculate_trace_similarity(trace_1, 
-                                                   trace_2, 
-                                                   distance_threshold = 100, 
-                                                   time_threshold = 10000)
-    assert result["similarity_percentage"] == 99.76541
+    result = calculate_trace_similarity(trace_1, 
+                                        trace_2, 
+                                        distance_threshold = 100, 
+                                        time_threshold = 10000)
+    assert result["max_similarity_percentage"] == 99.76541
 
 
 ###################

@@ -1,26 +1,28 @@
 import json
 
-from src.tracely.clean_trace import CleanTrace
 from src.tracely import constants
+from src.tracely.trace_similarity import calculate_trace_similarity
 from src.tracely.utils.utils import create_path
+from tests.testing_utils import load_calculate_trace_similarity_payloads
 
 
 # Example usage of CleanTrace for trace similarity calculation
 if __name__ == "__main__":
 
     # Load existing traces
-    traces_path = constants.BASE_PATH + "/tests/similarity_calculation_payloads/large_trace_pair.json"
+    payload = load_calculate_trace_similarity_payloads("large_trace_pair")
 
-    with open(traces_path, "r", encoding="utf-8") as f:
-        payload = json.load(f)
-    
     trace_1 = payload["trace_1"]
     trace_2 = payload["trace_2"]
 
-    similarity_result = CleanTrace.calculate_trace_similarity(trace_1, trace_2, distance_threshold = 100, time_threshold = 10000, plot_map = True)
+    similarity_result = calculate_trace_similarity(trace_1, 
+                                                   trace_2, 
+                                                   distance_threshold = 100, 
+                                                   time_threshold = 10000, 
+                                                   plot_map = True)
 
-    # Get similarity_percentage and metadata from result
-    similarity_result_stats = {"similarity_percentage": similarity_result["similarity_percentage"],
+    # Get max_similarity_percentage and metadata from result
+    similarity_result_stats = {"max_similarity_percentage": similarity_result["max_similarity_percentage"],
                                "metadata": similarity_result["metadata"]}
 
     # Get map plot from result

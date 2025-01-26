@@ -140,7 +140,7 @@ Additionally, we have also provided a helper script `install_osrm.sh` using whic
 
   * User can calculate the similarity between two traces and optionally visualize the traces using the `calculate_trace_similarity` method. Example usage:
       ```python
-      from tracely.clean_trace import CleanTrace
+      from tracely.trace_similarity import calculate_trace_similarity
 
       # Define two traces with their respective latitudes, longitudes, and timestamps
       trace_1 = [
@@ -159,7 +159,7 @@ Additionally, we have also provided a helper script `install_osrm.sh` using whic
       time_threshold = 1000    # milliseconds
 
       # Calculate trace similarity
-      similarity_result = CleanTrace.calculate_trace_similarity(trace_1, trace_2, distance_threshold, time_threshold, plot_map=True)
+      similarity_result = calculate_trace_similarity(trace_1, trace_2, distance_threshold, time_threshold, plot_map=True)
       ```
     * Example map illustration      
       ![Dual Map for traces](assets/images/trace_overlap_image.png)

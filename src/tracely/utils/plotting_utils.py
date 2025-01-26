@@ -618,7 +618,10 @@ def plot_stop_comparison_map(left_hand_trace,
     return map_object
 
 
-def _plot_trace_in_feature_group(trace, name = "Trace", color="red", show=False):
+def _plot_trace_in_feature_group(trace, 
+                                 name="Trace", 
+                                 color="red", 
+                                 show=False):
     """
     Adds a geographical trace as a polyline to a folium FeatureGroup.
 
@@ -649,7 +652,10 @@ def _plot_trace_in_feature_group(trace, name = "Trace", color="red", show=False)
     return feature_group
 
 
-def plot_trace_overlap_map(trace_1, trace_2, left_text, right_text, map_centre):
+def plot_trace_overlap_map(trace_1, 
+                           trace_2, 
+                           similarity_percentage_trace_1_to_2, 
+                           similarity_percentage_trace_2_to_1,):
     """
     Creates a Folium DualMap to visualize two traces.
 
@@ -657,26 +663,50 @@ def plot_trace_overlap_map(trace_1, trace_2, left_text, right_text, map_centre):
     Layers for each trace and their overlaps can be toggled using the map's layer control.
 
     Args:
-        trace_1 (list): The first trace, represented as a list of points. Each point should be a list in the form [latitude, longitude, ...].
-        left_text (str): Text to display on left map of dual map.
-        right_text (str): Text to display on right map of dual map.
-        trace_2 (list): The second trace, represented as a list of points. Each point should be a list in the form [latitude, longitude, ...].
-        map_centre (list): The center of the map, specified as [latitude, longitude].
+        trace_1 (np.array): The first trace as list of list, where each sublist represents [latitude, longitude, timestamp].
+                            Here, latitude and longitude are in decimal degrees, and timestamp is in milliseconds.
+        trace_2 (np.array): The second trace as list of list, where each sublist represents [latitude, longitude, timestamp].
+                            Here, latitude and longitude are in decimal degrees, and timestamp is in milliseconds.
+        similarity_percentage_trace_1_to_2 (float): Percentage of pings in `trace_1` overlapping with `trace_2`
+        similarity_percentage_trace_2_to_1 (float): Percentage of pings in `trace_2` overlapping with `trace_1`
 
     Returns:
         folium.plugins.DualMap: A DualMap object with the two traces, their overlapping points, and a layer control for toggling visibility.
     """
 
+    # Find starting location for map
+    trace_1_representative_location = (np.mean(trace_1[:, 0]), np.mean(trace_1[:, 1]))
+    trace_2_representative_location = (np.mean(trace_2[:, 0]), np.mean(trace_2[:, 1]))
+    representative_loc_for_both_traces = ((trace_1_representative_location[0] + trace_2_representative_location[0]) / 2,
+                                            (trace_1_representative_location[1] + trace_2_representative_location[1]) / 2 )
+
     # Initialize a Folium map centered around the specified location
-    trace_dual_map = fl.plugins.DualMap(location=map_centre, zoom_start=15, control_scale=True, max_zoom=50)
+    trace_dual_map = fl.plugins.DualMap(location=representative_loc_for_both_traces, zoom_start=15, control_scale=True, max_zoom=50)
 
     # Add the first trace to both maps, controlling visibility
-    _plot_trace_in_feature_group(trace_1, name="Trace 1", color="red", show=True).add_to(trace_dual_map.m1)
-    _plot_trace_in_feature_group(trace_1, name="Trace 1", color="red", show=False).add_to(trace_dual_map.m2)
+    _plot_trace_in_feature_group(trace_1.tolist(), 
+                                 name="Trace 1", 
+                                 color="red", 
+                                 show=True).add_to(trace_dual_map.m1)
+    
+    _plot_trace_in_feature_group(trace_1.tolist(), 
+                                 name="Trace 1", 
+                                 color="red", 
+                                 show=False).add_to(trace_dual_map.m2)
 
     # Add the second trace to both maps, controlling visibility
-    _plot_trace_in_feature_group(trace_2, name="Trace 2", color="blue", show=False).add_to(trace_dual_map.m1)
-    _plot_trace_in_feature_group(trace_2, name="Trace 2", color="blue", show=True).add_to(trace_dual_map.m2)
+    _plot_trace_in_feature_group(trace_2.tolist(), 
+                                 name="Trace 2", 
+                                 color="blue", 
+                                 show=False).add_to(trace_dual_map.m1)
+    
+    _plot_trace_in_feature_group(trace_2.tolist(), 
+                                 name="Trace 2", 
+                                 color="blue", 
+                                 show=True).add_to(trace_dual_map.m2)
+
+    left_text  = f"<div><b>Trace Similarity (T1, T2)</b>: {similarity_percentage_trace_1_to_2} %</div>"
+    right_text = f"<div><b>Trace Similarity (T2, T1)</b>: {similarity_percentage_trace_2_to_1} %</div>"
 
     trace_dual_map = _add_static_text_on_dual_map(trace_dual_map, left_text, right_text)
 

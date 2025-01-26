@@ -1,6 +1,40 @@
+import os
 import json
+import random
+import time
 
 from src.tracely import constants
+
+
+def generate_dummy_trace(num_points):
+    """
+    Generate a trace of coordinates starting from a random point.
+
+    Args:
+        num_points (int): Number of coordinate points to generate.
+
+    Returns:
+        list: List of coordinates with [latitude, longitude, timestamp].
+    """
+    
+    coordinates = []
+    current_time = int(time.time() * 1000)  # Get current timestamp in milliseconds
+
+    # Start with a random latitude and longitude
+    latitude = round(random.uniform(-90.0, 90.0), 6)
+    longitude = round(random.uniform(-180.0, 180.0), 6)
+
+    for _ in range(num_points):
+        coordinates.append([latitude, longitude, current_time])
+
+        # Increment latitude and longitude slightly for the next point
+        latitude = latitude + 0.001
+        longitude = longitude + 0.001
+
+        # Increment timestamp by 1 second (1000 milliseconds)
+        current_time += 1000
+
+    return coordinates
 
 
 def dump_payload_to_json(payload: dict, json_file_path) -> None:
@@ -39,9 +73,10 @@ def load_calculate_trace_similarity_payloads(payload_name):
         payload_name (dict): Name of payload JSON file.
     """
 
-    trace_sim_cal_payloads_path = constants.TRACE_SIMILARITY_CALCULATION_PAYLOADS_PATH
+    trace_sim_cal_payloads_path = os.path.join(constants.TEST_PAYLOADS_BASE_PATH,
+                                        "similarity_calculation_payloads", "")
     payload_path = trace_sim_cal_payloads_path + payload_name + ".json"
-    print(payload_path)
+
     with open(payload_path, "r", encoding="utf-8") as f:
         payload = json.load(f)
     return payload

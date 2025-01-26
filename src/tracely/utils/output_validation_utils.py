@@ -622,13 +622,13 @@ def _validate_metadata(metadata, length_trace_1, length_trace_2, name="metadata"
                                               ValidationErrorCode.VALUE_EXCEPTION_CODE)
 
 
-def validate_trace_similarity_output(trace_similarity_output, length_trace_1, length_trace_2, name="trace_similarity_output"):
+def validate_trace_similarity_output(trace_similarity_output, trace_1_array, trace_2_array, name="trace_similarity_output"):
     """Validates the structure and contents of trace similarity output.
 
     Args:
         trace_similarity_output (dict): Trace similarity dict to be validated.
-        length_trace_1 (int): Length of trace_1 (number of pings).
-        length_trace_2 (int): Length of trace_2 (number of pings).
+        trace_1_array (numpy.array): trace_1 as numpy array.
+        trace_1_array (numpy.array): trace_2 as numpy array.
         name (str, optional): Name of input dict. Defaults to "trace_similarity_output".
 
     Raises:
@@ -669,13 +669,16 @@ def validate_trace_similarity_output(trace_similarity_output, length_trace_1, le
             raise ValidationException(ValidationErrorMessage.UNEXPECTED_KEYS_IN_DICT.format(name),
                                       ValidationErrorCode.KEY_ERROR_EXCEPTION_CODE)
 
-    # Validate similarity_percentage
-    similarity_percentage = trace_similarity_output['similarity_percentage']
-    DataValidationUtils.check_int_or_float(similarity_percentage, "similarity_percentage")
+    # Validate max_similarity_percentage
+    max_similarity_percentage = trace_similarity_output['max_similarity_percentage']
+    DataValidationUtils.check_int_or_float(max_similarity_percentage, "max_similarity_percentage")
 
-    if not (0 <= similarity_percentage <= 100):
+    if not (0 <= max_similarity_percentage <= 100):
         raise ValidationException(ValidationErrorMessage.INCORRECT_SIMILARITY_PERCENTAGE,
                                     ValidationErrorCode.VALUE_EXCEPTION_CODE)
 
     # Validate metadata
+    length_trace_1 = len(trace_1_array)
+    length_trace_2 = len(trace_2_array)
     _validate_metadata(trace_similarity_output["metadata"], length_trace_1, length_trace_2, name="metadata")
+
