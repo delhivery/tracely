@@ -250,7 +250,7 @@ class CleanTrace():
             if distance is None:
                 continue
 
-            if (distance < min_dist_bw_consecutive_pings) and not (row["force_retain"]):
+            if distance < min_dist_bw_consecutive_pings:
                 mask[i] = True
                 continue
 

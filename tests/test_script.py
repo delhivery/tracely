@@ -256,15 +256,6 @@ def test_invalid_error_radius_type_in_a_ping():
         trace_data_obj = CleanTrace(payload)
 
 
-def test_invalid_force_retain_type_in_a_ping():
-    """Test data type of "force_retain" in a ping in "trace"."""
-
-    payload = load_trace_payload("dummy_trace_input_payload")
-    payload["trace"][0]["force_retain"] = "invalid"
-    expected_error_msg = re.escape('("force_retain must be of type Bool but found <class \'str\'>", 4002)')
-
-    with pytest.raises(ValidationException, match=expected_error_msg) as e:
-        trace_data_obj = CleanTrace(payload)
 
 
 def test_invalid_event_type_type_in_a_ping():
@@ -326,7 +317,6 @@ def test_missing_optional_keys_in_a_ping():
         if ping["ping_id"] == ping_id:
             assert ping["error_radius"] == None
             assert ping["event_type"] == None
-            assert ping["force_retain"] == False
             assert ping["metadata"] == {}
 
 

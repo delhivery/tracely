@@ -48,7 +48,6 @@ OPTIONAL_ITEMS_IN_A_PING = {
     "ping_id": None,
     "error_radius": None,
     "event_type": None,
-    "force_retain": False,
     "metadata": {},
 }
 
@@ -111,7 +110,6 @@ CLEAN_TRACE_COLUMNS_WITHOUT_METADATA = [
     "timestamp",
     "error_radius",
     "event_type",
-    "force_retain",
 
     "cleaned_latitude",
     "cleaned_longitude",
