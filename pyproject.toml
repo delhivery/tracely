@@ -25,5 +25,5 @@ dependencies = [
     "pandas==2.0.3",
     "polyline==2.0.2",
     "pytest==8.3.2",
-    "requests==2.32.3"
+    "requests==2.33.0"
 ]
