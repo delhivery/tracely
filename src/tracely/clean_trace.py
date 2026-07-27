@@ -435,7 +435,7 @@ class CleanTrace():
                                time_taken=(time.time() - start_time))
 
     def map_match_trace(self,
-                     osrm_url="http://127.0.0.1:5000/match/v1/driving/",
+                     osrm_url=constants.DEFAULT_OSRM_URL + "/match/v1/driving/",
                      ping_batch_size=5,
                      map_matching_radius=20,
                      avg_snap_distance=12,
@@ -448,8 +448,9 @@ class CleanTrace():
 
         Args:
             osrm_url (str, optional): The URL of the OSRM server for map matching.
-                                      Defaults to "http://127.0.0.1:5000/match/v1/driving/", which expects the OSRM server
-                                      to be running locally on port 5000.
+                                      Defaults to "<OSRM_URL>/match/v1/driving/", where OSRM_URL is read from an OSRM_URL
+                                      environment variable or a .env file in the current working directory, or
+                                      "http://127.0.0.1:5000" if neither is set.
             ping_batch_size (int, optional): The size of each segment for map matching pings. Defaults to 5.
             map_matching_radius (int, float, optional): The radius in meters for map matching. A location is map matched only 
                                                         if there is a road within the map matching radius. Defaults to 20 meters.
@@ -517,7 +518,7 @@ class CleanTrace():
             time_taken=(time.time() - start_time))
         
     def interpolate_trace(self,
-                          osrm_url="http://127.0.0.1:5000/route/v1/driving/",
+                          osrm_url=constants.DEFAULT_OSRM_URL + "/route/v1/driving/",
                           min_dist_from_prev_ping=10,
                           max_dist_from_prev_ping=250):
         """
@@ -527,7 +528,9 @@ class CleanTrace():
 
         Args:
             osrm_url (str, optional): A URL specifying the endpoint for accessing the OSRM route service.
-                                      Defaults to "http://127.0.0.1:5000/route/v1/driving/", which expects the OSRM server to be running locally on port 5000.
+                                      Defaults to "<OSRM_URL>/route/v1/driving/", where OSRM_URL is read from an OSRM_URL
+                                      environment variable or a .env file in the current working directory, or
+                                      "http://127.0.0.1:5000" if neither is set.
             min_dist_from_prev_ping (int, optional): Minimum distance in meters required between consecutive trace pings for interpolation. Defaults to 20 meters.
             max_dist_from_prev_ping (int, optional): Maximum distance in meters allowed between consecutive trace pings for interpolation. Defaults to 200 meters.
         
@@ -638,7 +641,8 @@ class CleanTrace():
                     prev_lat, prev_lng, prev_interpolated_ping_time = new_ping_lat, new_ping_lng, interpolated_ping_time
                     interpolated_pings.append(new_ping)
 
-        interpolated_pings.append(trace_data[i])
+        if trace_data:
+            interpolated_pings.append(trace_data[-1])
         interpolation_result = pd.DataFrame(interpolated_pings)
 
         self.trace_df = interpolation_result

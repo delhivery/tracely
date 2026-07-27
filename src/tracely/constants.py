@@ -1,10 +1,20 @@
 import os
 import datetime
+from dotenv import load_dotenv
 
 ########################
 # Define path to tracely
 ########################
 BASE_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "")
+
+
+###############################################################
+# Load .env from the current working directory, if present, so
+# users can override defaults (e.g. OSRM_URL) without editing code.
+###############################################################
+load_dotenv()
+
+DEFAULT_OSRM_URL = os.environ.get("OSRM_URL", "http://127.0.0.1:5000")
 
 
 ##############################

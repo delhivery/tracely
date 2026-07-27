@@ -541,7 +541,7 @@ class DataValidationUtils:
             if "ping_id" in ping_dict:
                 ping_ids.append(ping_dict["ping_id"])
 
-            if isinstance(ping_dict["latitude"], (int, float)) and isinstance(ping_dict["latitude"], (int, float)):
+            if isinstance(ping_dict["latitude"], (int, float)) and isinstance(ping_dict["longitude"], (int, float)):
                 at_least_one_ping_with_not_null_coord = True
 
         if not at_least_one_ping_with_not_null_coord:
