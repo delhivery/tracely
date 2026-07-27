@@ -62,6 +62,10 @@ Note: Apart from validation, **vehicle_type** and **vehicle_speed** information 
 
 
 # Installing Tracely
+   Tracely depends on `infostop`, which compiles a small C++ extension (via `infomap`) during install.
+   A C++ compiler must be available on your system beforehand — `install_tracely.sh` checks for one and
+   prints the install command for your OS if it's missing.
+
    Create an environment with python 3.11 and activate the python environment and run following commands. Then you can use the [usage example](#usage) directly.
 
    ```python
