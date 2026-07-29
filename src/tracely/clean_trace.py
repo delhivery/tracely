@@ -9,6 +9,7 @@ from . import constants
 from .create_trace_data import CreateTraceData
 from .utils.data_validation_utils import DataValidationUtils
 from .utils.utils import get_haversine_distance, \
+                         vectorized_haversine, \
                          calculate_change_in_direction, \
                          convert_unix_timestamp_to_human_readable, \
                          convert_time_interval_to_human_readable, \
@@ -71,7 +72,7 @@ class CleanTrace():
         self.trace_data = CreateTraceData(input_trace_payload).create_trace_data()
         self.vehicle_type = self.trace_data["vehicle_type"]
         self.vehicle_speed = self.trace_data["vehicle_speed"]  # km/hr
-        self.trace_df = copy.deepcopy(self.trace_data["trace_df"])
+        self.trace_df = self.trace_data["trace_df"].copy()
         self.raw_trace = self.trace_df.to_dict(orient="records")
         self.input_pings_count = len(self.trace_df)
         self.elapsed_time_record = []
@@ -213,49 +214,48 @@ class CleanTrace():
         # Validate parameter
         DataValidationUtils.validate_remove_nearby_pings_parameters(min_dist_bw_consecutive_pings=min_dist_bw_consecutive_pings)
 
+        # Extract columns as numpy arrays for fast access
+        latitudes = self.trace_df["cleaned_latitude"].values
+        longitudes = self.trace_df["cleaned_longitude"].values
+        update_statuses = self.trace_df["update_status"].values
+        force_retains = self.trace_df["force_retain"].values
+
         # Get the first ping as the starting reference
-        prev_ping = (self.trace_df.iloc[0]["cleaned_latitude"],self.trace_df.iloc[0]["cleaned_longitude"])
+        prev_lat, prev_lng = latitudes[0], longitudes[0]
 
         # Create a mask to store which rows need to be updated
         mask = np.zeros(len(self.trace_df), dtype=bool)
 
-        for i, row in enumerate(self.trace_df.to_dict("records")[1:], 1):
+        for i in range(1, len(self.trace_df)):
 
-            current_ping = (row["cleaned_latitude"], row["cleaned_longitude"])
+            curr_lat, curr_lng = latitudes[i], longitudes[i]
 
-            if ((prev_ping[0] is None) or
-                (prev_ping[1] is None) or
-                (pd.isna(prev_ping[0])) or
-                (pd.isna(prev_ping[1]))):
-
-                prev_ping = current_ping
+            if (prev_lat is None or prev_lng is None or
+                pd.isna(prev_lat) or pd.isna(prev_lng)):
+                prev_lat, prev_lng = curr_lat, curr_lng
                 continue
 
-            if ((current_ping[0] is None) or
-                (current_ping[1] is None) or
-                (pd.isna(current_ping[0])) or
-                (pd.isna(current_ping[1]))):
+            if (curr_lat is None or curr_lng is None or
+                pd.isna(curr_lat) or pd.isna(curr_lng)):
                 continue
 
             # Do not update current ping if it is an interpolated ping
-            if row["update_status"] == "interpolated":
+            if update_statuses[i] == "interpolated":
                 continue
 
             # Calculate the distance between the current ping and the previous ping
-            distance = get_haversine_distance(prev_ping[0],
-                                              prev_ping[1],
-                                              current_ping[0],
-                                              current_ping[1])
+            distance = get_haversine_distance(prev_lat, prev_lng,
+                                              curr_lat, curr_lng)
 
             if distance is None:
                 continue
 
-            if (distance < min_dist_bw_consecutive_pings) and not (row["force_retain"]):
+            if (distance < min_dist_bw_consecutive_pings) and not force_retains[i]:
                 mask[i] = True
                 continue
 
             # Update the previous ping if the current one is kept
-            prev_ping = current_ping  
+            prev_lat, prev_lng = curr_lat, curr_lng
 
         self.trace_df.loc[mask, ["cleaned_latitude", "cleaned_longitude", "update_status", "last_updated_by"]] = [None, None, "dropped", "remove_nearby_pings"]
 
@@ -281,9 +281,9 @@ class CleanTrace():
                                           Defaults to 1.
         """
 
-        trace_df = copy.deepcopy(self.trace_df[(~self.trace_df["cleaned_latitude"].isnull()) & 
-                                               (~self.trace_df["cleaned_longitude"].isnull())])
-        
+        trace_df = self.trace_df[(~self.trace_df["cleaned_latitude"].isnull()) &
+                                 (~self.trace_df["cleaned_longitude"].isnull())].copy()
+
         trace_df = trace_df.reset_index(drop=True)
 
         # Extract latitude, longitude and update_status data as NumPy array for faster access
@@ -389,8 +389,8 @@ class CleanTrace():
         # Validate parameter
         DataValidationUtils.validate_impute_distorted_pings_with_angle_parameters(max_delta_angle=max_delta_angle)
 
-        trace_df = copy.deepcopy(self.trace_df[(~self.trace_df["cleaned_latitude"].isnull()) & 
-                                               (~self.trace_df["cleaned_longitude"].isnull())])
+        trace_df = self.trace_df[(~self.trace_df["cleaned_latitude"].isnull()) &
+                                 (~self.trace_df["cleaned_longitude"].isnull())].copy()
         trace_df = trace_df.reset_index(drop=True)
 
         # Convert DataFrame to NumPy array for faster access
@@ -473,7 +473,7 @@ class CleanTrace():
                                                              avg_snap_distance=avg_snap_distance,
                                                              max_matched_dist_to_raw_dist_ratio=max_matched_dist_to_raw_dist_ratio)
 
-        trace_df = copy.deepcopy(self.trace_df)
+        trace_df = self.trace_df.copy()
         trace_segments = create_segments(trace_df, ping_batch_size)
         matched_segments = process_trace_segments(segments=trace_segments,
                                                   osrm_url=osrm_url,
@@ -703,13 +703,13 @@ class CleanTrace():
                           cumulative_stop_event_time, stop_event_sequence_number columns in the order they are written.
         """
         
-        trace_df_copy = copy.deepcopy(trace_df)
+        trace_df_copy = trace_df.copy()
 
         # Create label key
         trace_df_copy["label_key"] = labels
 
         # Adding status key on the basis of labels in trace_df_copy
-        trace_df_copy["stop_event_status"] = trace_df_copy["label_key"].apply(lambda x: True if x >= 0 else False)
+        trace_df_copy["stop_event_status"] = trace_df_copy["label_key"] >= 0
 
         # Adding representative ping for each batch of stopping ping
         stopping_pings_df = trace_df_copy[trace_df_copy["label_key"] != -1]
@@ -751,9 +751,10 @@ class CleanTrace():
                                                common_keys=["ping_id","cumulative_stop_event_time","stop_event_sequence_number"])
 
         trace_df_copy["cumulative_stop_event_time"].replace({np.nan: 0}, inplace=True)
-        trace_df_copy["cumulative_stop_event_time"] = trace_df_copy.apply(lambda row: convert_time_interval_to_human_readable(row["cumulative_stop_event_time"], 
-                                                                                                                              format="ms"),
-                                                                    axis=1)
+        trace_df_copy["cumulative_stop_event_time"] = [
+            convert_time_interval_to_human_readable(t, format="ms")
+            for t in trace_df_copy["cumulative_stop_event_time"].values
+        ]
 
         return trace_df_copy[["ping_id", "stop_event_status", "representative_stop_event_latitude",
                               "representative_stop_event_longitude", "cumulative_stop_event_time", "stop_event_sequence_number"]]
@@ -793,9 +794,9 @@ class CleanTrace():
                                                                      min_size=min_size, 
                                                                      min_staying_time=min_staying_time)
 
-        trace_df = copy.deepcopy(self.trace_df[(~self.trace_df["cleaned_latitude"].isnull()) & 
-                                               (~self.trace_df["cleaned_longitude"].isnull()) & 
-                                               (~self.trace_df["timestamp"].isnull())])
+        trace_df = self.trace_df[(~self.trace_df["cleaned_latitude"].isnull()) &
+                                 (~self.trace_df["cleaned_longitude"].isnull()) &
+                                 (~self.trace_df["timestamp"].isnull())].copy()
         
         trace_df["timestamp"] = trace_df["timestamp"] // 1000
         trace_list = trace_df[["cleaned_latitude","cleaned_longitude", "timestamp"]].values.tolist()
@@ -808,8 +809,8 @@ class CleanTrace():
 
         stop_info_df = self._get_stop_info(trace_df,labels)
 
-        stop_info_df = self._merge_dataframes(copy.deepcopy(self.trace_df), 
-                                              stop_info_df, "ping_id", 
+        stop_info_df = self._merge_dataframes(self.trace_df.copy(),
+                                              stop_info_df, "ping_id",
                                               common_keys=constants.STOP_INFO_KEYS)
         
         stop_info_df["representative_stop_event_latitude"].replace({np.nan: None}, inplace=True)
@@ -830,8 +831,7 @@ class CleanTrace():
             pandas.Series: Series of time difference between consecutive pings.
         """
 
-        timestamp_series = copy.deepcopy(trace_df[["timestamp"]])
-        return timestamp_series["timestamp"].diff()
+        return trace_df["timestamp"].diff()
 
     def _add_distance_bw_pings(self, 
                                input_trace_df: pd.DataFrame) -> pd.Series:
@@ -845,25 +845,29 @@ class CleanTrace():
             pandas.Series: Series of difference in distance between consecutive pings.
         """
 
-        trace_df = copy.deepcopy(input_trace_df[["cleaned_latitude", "cleaned_longitude"]])
+        cleaned_lat = input_trace_df["cleaned_latitude"].values.astype(np.float64)
+        cleaned_lng = input_trace_df["cleaned_longitude"].values.astype(np.float64)
 
-        # Step 1: Shift the "cleaned_latitude", "cleaned_longitude" column to create the initial "previous_latitude", "previous_longitude" column
-        trace_df["previous_latitude"] = trace_df["cleaned_latitude"].shift(1)
-        trace_df["previous_longitude"] = trace_df["cleaned_longitude"].shift(1)
+        # Step 1: Shift to get previous coordinates
+        prev_lat = np.empty_like(cleaned_lat)
+        prev_lat[0] = np.nan
+        prev_lat[1:] = cleaned_lat[:-1]
 
-        # Step 2: Forward fill "previous_latitude", "previous_longitude" only where it is not NaN
-        trace_df["previous_latitude"] = trace_df["previous_latitude"].ffill()
-        trace_df["previous_longitude"] = trace_df["previous_longitude"].ffill()
+        prev_lng = np.empty_like(cleaned_lng)
+        prev_lng[0] = np.nan
+        prev_lng[1:] = cleaned_lng[:-1]
 
-        # Step 3: Ensure "previous_latitude", "previous_longitude" are NaN where "cleaned_latitude", "cleaned_longitude" is NaN
-        trace_df["previous_latitude"] = trace_df.apply(lambda row: row["previous_latitude"] if pd.notna(row["cleaned_latitude"]) else np.nan, axis=1)
-        trace_df["previous_longitude"] = trace_df.apply(lambda row: row["previous_longitude"] if pd.notna(row["cleaned_longitude"]) else np.nan, axis=1)
+        # Step 2: Forward fill previous coordinates
+        prev_lat = pd.Series(prev_lat).ffill().values
+        prev_lng = pd.Series(prev_lng).ffill().values
 
-        return trace_df.apply(lambda row: get_haversine_distance(row["previous_latitude"],
-                                                                 row["previous_longitude"],
-                                                                 row["cleaned_latitude"],
-                                                                 row["cleaned_longitude"]),
-                        axis=1)
+        # Step 3: Set previous to NaN where current is NaN
+        current_null = np.isnan(cleaned_lat) | np.isnan(cleaned_lng)
+        prev_lat[current_null] = np.nan
+        prev_lng[current_null] = np.nan
+
+        # Step 4: Vectorized haversine distance
+        return pd.Series(vectorized_haversine(prev_lat, prev_lng, cleaned_lat, cleaned_lng))
 
     def _match_metadata(self, 
                         ping_list: list) -> list:
@@ -992,19 +996,19 @@ class CleanTrace():
         """
 
         # Create copy of dataframe (only input_latitude, input_longitude columns) with only not null pings.
-        trace_lat_lng_df = copy.deepcopy(self.trace_df[["input_latitude", "input_longitude"]])
-        trace_lat_lng_df.dropna(inplace=True)
+        trace_lat_lng_df = self.trace_df[["input_latitude", "input_longitude"]].dropna().copy()
 
-        # Add previous ping for each ping
-        trace_lat_lng_df["previous_latitude"] = trace_lat_lng_df["input_latitude"].shift(1)
-        trace_lat_lng_df["previous_longitude"] = trace_lat_lng_df["input_longitude"].shift(1)
+        # Vectorized distance computation using shifted coordinates
+        lat = trace_lat_lng_df["input_latitude"].values.astype(np.float64)
+        lng = trace_lat_lng_df["input_longitude"].values.astype(np.float64)
+        prev_lat = np.empty_like(lat)
+        prev_lat[0] = np.nan
+        prev_lat[1:] = lat[:-1]
+        prev_lng = np.empty_like(lng)
+        prev_lng[0] = np.nan
+        prev_lng[1:] = lng[:-1]
 
-        # Add distance of each ping from its previous ping
-        trace_lat_lng_df["dist_from_prev_ping"] = trace_lat_lng_df.apply(lambda row: get_haversine_distance(row["previous_latitude"],
-                                                                                                             row["previous_longitude"],
-                                                                                                             row["input_latitude"],
-                                                                                                             row["input_longitude"]),
-                                                                        axis=1)
+        trace_lat_lng_df["dist_from_prev_ping"] = vectorized_haversine(prev_lat, prev_lng, lat, lng)
 
         # Calculate distance of raw and clean trace
         # Use float type conversion to avoid numpy.int64 or numpy.float64 data type
@@ -1048,7 +1052,7 @@ class CleanTrace():
             "stop_events_info": [],
             "global_stop_events_info": {}}
 
-        df = copy.deepcopy(self.trace_df)
+        df = self.trace_df
 
         # Variables to track global stopping metrics
         total_trace_time = df["timestamp"].max()//1000 - df["timestamp"].min()//1000
@@ -1297,4 +1301,4 @@ class CleanTrace():
         # Create and return map plot
         trace_output = self.get_trace_cleaning_output()
         trace = trace_output["cleaned_trace"]
-        return plot_stop_comparison_map(copy.deepcopy(self.raw_trace), trace, map_object)
+        return plot_stop_comparison_map(list(self.raw_trace), trace, map_object)

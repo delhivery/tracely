@@ -2,9 +2,12 @@ import os
 import math
 from typing import Union
 import datetime
+import numpy as np
 from haversine import haversine
 
 from .. import constants
+
+_EARTH_RADIUS_M = 6371000
 
 
 def get_haversine_distance(lat_1: Union[int, float],
@@ -25,14 +28,41 @@ def get_haversine_distance(lat_1: Union[int, float],
     """
 
     try:
-        haversine_distance = haversine((lat_1, lng_1), 
-                                       (lat_2, lng_2), 
+        haversine_distance = haversine((lat_1, lng_1),
+                                       (lat_2, lng_2),
                                        unit="m")
-        
+
         return round(haversine_distance, 2)
-    
+
     except Exception:
         return None
+
+
+def vectorized_haversine(lat1, lng1, lat2, lng2):
+    """
+    Compute haversine distances between arrays of coordinates using vectorized numpy operations.
+
+    Args:
+        lat1, lng1, lat2, lng2: numpy arrays of coordinates in decimal degrees.
+
+    Returns:
+        numpy array: Distances in meters (rounded to 2 decimal places). NaN where any input is NaN.
+    """
+    lat1 = np.asarray(lat1, dtype=np.float64)
+    lng1 = np.asarray(lng1, dtype=np.float64)
+    lat2 = np.asarray(lat2, dtype=np.float64)
+    lng2 = np.asarray(lng2, dtype=np.float64)
+
+    lat1_r = np.radians(lat1)
+    lat2_r = np.radians(lat2)
+    dlat = np.radians(lat2 - lat1)
+    dlng = np.radians(lng2 - lng1)
+
+    a = np.sin(dlat / 2) ** 2 + np.cos(lat1_r) * np.cos(lat2_r) * np.sin(dlng / 2) ** 2
+    c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
+    distances = np.round(_EARTH_RADIUS_M * c, 2)
+
+    return distances
 
 
 def calculate_trace_distance(trace):
