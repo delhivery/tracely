@@ -1,5 +1,6 @@
 import re
 import os
+import warnings
 import pytest
 import folium
 import tempfile
@@ -88,7 +89,37 @@ def test_trace_key_with_only_null_lat_lng():
 
     # Set coordinates of all pings as None
     for ping in payload["trace"]:
-        ping["latitude"], ping["latitude"] = None, None
+        ping["latitude"], ping["longitude"] = None, None
+
+    expected_error_msg = re.escape("('Trace should have at least one ping with non null latitude and longitude', 4003)")
+
+    with pytest.raises(ValidationException, match=expected_error_msg) as e:
+        trace_data_obj = CleanTrace(payload)
+
+
+def test_trace_key_with_only_null_latitude():
+    """Test "trace" where every ping has a null latitude but a non null longitude."""
+
+    payload = load_trace_payload("dummy_trace_input_payload")
+    payload["trace"] = payload["trace"][:100]
+
+    for ping in payload["trace"]:
+        ping["latitude"] = None
+
+    expected_error_msg = re.escape("('Trace should have at least one ping with non null latitude and longitude', 4003)")
+
+    with pytest.raises(ValidationException, match=expected_error_msg) as e:
+        trace_data_obj = CleanTrace(payload)
+
+
+def test_trace_key_with_only_null_longitude():
+    """Test "trace" where every ping has a null longitude but a non null latitude."""
+
+    payload = load_trace_payload("dummy_trace_input_payload")
+    payload["trace"] = payload["trace"][:100]
+
+    for ping in payload["trace"]:
+        ping["longitude"] = None
 
     expected_error_msg = re.escape("('Trace should have at least one ping with non null latitude and longitude', 4003)")
 
@@ -812,6 +843,24 @@ def test_interpolate_trace():
     assert clean_output["distance_summary"]["percent_reduction_in_dist"] >= 0
 
 
+def test_interpolate_trace_single_ping():
+    """Test interpolate_trace on a trace with just one ping. Nothing can be interpolated between a
+    single ping and itself, so the ping should be returned unchanged rather than raising an error."""
+
+    payload = load_trace_payload("dummy_trace_input_payload")
+    payload["trace"] = payload["trace"][:1]
+
+    trace_data_obj = CleanTrace(payload)
+
+    trace_data_obj.map_match_trace()
+    trace_data_obj.interpolate_trace()
+
+    clean_output = trace_data_obj.get_trace_cleaning_output()
+
+    assert len(clean_output["cleaned_trace"]) == 1
+    assert clean_output["cleaned_trace"][0]["update_status"] in ("unchanged", "updated")
+
+
 def test_interpolate_trace_flag_consistency():
     """Test that interpolated points are not updated by map matching function."""
 
@@ -962,6 +1011,34 @@ def test_plot_cleaning_comparison_map():
 
     assert isinstance(trace_map_1, folium.plugins.DualMap)
     assert isinstance(trace_map_2, folium.plugins.DualMap)
+
+
+def test_plotting_single_ping_trace_no_warnings():
+    """Test that plotting functions do not raise a divide-by-zero warning (or fail) for traces
+    with fewer than 10 pings, since trace segmentation for plotting divides the trace into
+    10 buckets of size (num_pings // 10)."""
+
+    payload = load_trace_payload("dummy_trace_input_payload")
+    payload["trace"] = payload["trace"][:1]
+
+    trace_data_obj = CleanTrace(payload)
+    trace_data_obj.add_stop_events_info()
+
+    raw_output = trace_data_obj.get_trace_cleaning_output()
+    raw_trace = raw_output["cleaned_trace"]
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", RuntimeWarning)
+
+        raw_map = trace_data_obj.plot_raw_trace()
+        clean_map = trace_data_obj.plot_clean_trace()
+        comparison_map = trace_data_obj.plot_cleaning_comparison_map(raw_trace, raw_trace)
+        stop_map = trace_data_obj.plot_raw_vs_stop_comparison_map()
+
+    assert isinstance(raw_map, folium.Map)
+    assert isinstance(clean_map, folium.Map)
+    assert isinstance(comparison_map, folium.plugins.DualMap)
+    assert isinstance(stop_map, folium.plugins.DualMap)
 
 
 ########################

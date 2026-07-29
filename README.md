@@ -95,6 +95,16 @@ Additionally, we have also provided a helper script `install_osrm.sh` using whic
   >>> sudo docker stop northern_india_osrm
   ```
 
+  `map_match_trace` and `interpolate_trace` default to an OSRM server at `http://127.0.0.1:5000`. If your OSRM
+  server runs at a different address (e.g. the "northern_india_osrm" container above, on port 7000), you can
+  either pass `osrm_url` explicitly to those methods, or set an `OSRM_URL` environment variable/`.env` file
+  (in the directory you run your script from) once instead of passing it every call:
+
+  ```
+  # .env
+  OSRM_URL=http://localhost:7000
+  ```
+
 
 # Usage
   * User can generate trace payload from a CSV file, create CleanTrace object and apply its methods. Example usage:

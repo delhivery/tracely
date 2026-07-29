@@ -51,7 +51,7 @@ def plot_raw_trace_from_trace_output(trace: list,
 
     # Dividing the trace into 10 segments, each containing 10% of trace.
     n = len(trace_df)
-    segment_size = n // 10
+    segment_size = max(n // 10, 1)  # avoid ZeroDivisionError/warning for traces with fewer than 10 pings
 
     # Create the "trace_segment" column
     trace_df["trace_segment"] = ((np.arange(n) // segment_size) + 1) * 10
@@ -136,7 +136,7 @@ def plot_clean_trace_from_trace_output(trace,
 
     # Dividing the trace into 10 segments, each containing 10% of trace.
     n = len(trace_df)
-    segment_size = n // 10
+    segment_size = max(n // 10, 1)  # avoid ZeroDivisionError/warning for traces with fewer than 10 pings
 
     # Create the "trace_segment" column
     trace_df["trace_segment"] = ((np.arange(n) // segment_size) + 1) * 10
@@ -369,7 +369,7 @@ def plot_cleaning_comparison_map_bw_two_traces(trace_before_operation,
 
     # Dividing the trace into 10 segments, each containing 10% of trace.
     n = len(trace_df)
-    segment_size = n // 10
+    segment_size = max(n // 10, 1)  # avoid ZeroDivisionError/warning for traces with fewer than 10 pings
 
     # Create the "trace_segment" column
     trace_df["trace_segment"] = ((np.arange(n) // segment_size) + 1) * 10
@@ -536,7 +536,7 @@ def plot_stop_comparison_map(left_hand_trace,
 
     # Dividing the trace into 10 segments, each containing 10% of trace.
     n = len(trace_df)
-    segment_size = n // 10
+    segment_size = max(n // 10, 1)  # avoid ZeroDivisionError/warning for traces with fewer than 10 pings
 
     # Create the "trace_segment" column
     trace_df["trace_segment"] = ((np.arange(n) // segment_size) + 1) * 10
