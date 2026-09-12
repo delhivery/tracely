@@ -622,8 +622,8 @@ class CleanTrace():
                                       Defaults to "<OSRM_URL>/route/v1/driving/", where OSRM_URL is read from an OSRM_URL
                                       environment variable or a .env file in the current working directory, or
                                       "http://127.0.0.1:5000" if neither is set.
-            min_dist_from_prev_ping (int, optional): Minimum distance in meters required between consecutive trace pings for interpolation. Defaults to 20 meters.
-            max_dist_from_prev_ping (int, optional): Maximum distance in meters allowed between consecutive trace pings for interpolation. Defaults to 200 meters.
+            min_dist_from_prev_ping (int, optional): Minimum distance in meters required between consecutive trace pings for interpolation. Defaults to 10 meters.
+            max_dist_from_prev_ping (int, optional): Maximum distance in meters allowed between consecutive trace pings for interpolation. Defaults to 250 meters.
         
         Raises:
             All exceptions raised by the following functions:
@@ -787,6 +787,7 @@ class CleanTrace():
         Provides relevant stop information for stopping points.
 
         Args:
+            trace_df (pandas.DataFrame): Trace dataframe (cleaned_latitude, cleaned_longitude, timestamp columns) the stop labels were computed from.
             labels (list): Labels denoting stopping pings information.
 
         Returns:
@@ -1029,7 +1030,7 @@ class CleanTrace():
             dict: A dictionary summarizing the results of trace cleaning. The dictionary has the following keys and values:
                   :total_pings_in_input (int): Denotes total number of pings in the input.
                   :total_non_null_pings_in_input (int): Denotes total number of non null pings in the input.
-                  :total_pings_in_output (int): Denotes total number of non null pings in the output.
+                  :total_non_null_pings_in_output (int): Denotes total number of non null pings in the output.
                   :unchanged_percentage (float): The percentage of pings from the input trace whose location is unchanged in the cleaned trace.
                                                  The percentage will be w.r.t the number of non null pings in the input.
                   :drop_percentage (float): The percentage of pings from the input trace which were dropped in cleaned trace w.r.t the number of non null pings in the input.
@@ -1210,12 +1211,13 @@ class CleanTrace():
                         :event_type (str, None): A string denoting the type of event which occurred at the ping as provided in the input. If no event_type was provided in the input for the current ping or
                                                  if the current ping is interpolated then the value in event_type will be None.
                         :force_retain (bool): Same as in input. If the ping is interpolated then the value will be False.
+                        :metadata (dict): Same as in input, matched back by ping_id. If the ping is interpolated (its ping_id is synthetic and never matches an input ping) then the value will be an empty dictionary.
                         :cleaned_latitude (float, None): Cleaned latitude. If the input ping has been dropped in cleaned trace then the cleaned latitude will be None.
                         :cleaned_longitude (float, None): Cleaned longitude. If the input ping has been dropped in cleaned trace then the cleaned longitude will be None.
                         :update_status (str): A string denoting the updation status of the current ping.
                         :last_updated_by (str): A string denoting the name of function which last updated the ping.
                                                 If a user is running a couple of functions over the ping then they can know which function has impacted the ping most recently.
-                        :stop_status (bool): Denotes stop status of ping. Defaults to False, updated when add_stop_events_info is called. Remains False if the ping is not a stop ping.
+                        :stop_event_status (bool): Denotes stop status of ping. Defaults to False, updated when add_stop_events_info is called. Remains False if the ping is not a stop ping.
                         :stop_event_sequence_number (int): Denotes the sequence number of stop event, if the current ping is its part.
                                                            Defaults to -1, updated when add_stop_events_info is called. Remains -1 if the ping is not an stop ping.
                         :cumulative_stop_event_time (str): Denotes cumulative stop time in the stop event
@@ -1233,7 +1235,7 @@ class CleanTrace():
                     A dictionary summarizing the results of trace cleaning. The dictionary has the following keys and values:
                         :total_pings_in_input (int): Denotes total number of pings in the input.
                         :total_non_null_pings_in_input (int): Denotes total number of non null pings in the input.
-                        :total_pings_in_output (int): Denotes total number of non null pings in the output.
+                        :total_non_null_pings_in_output (int): Denotes total number of non null pings in the output.
                         :total_trace_time (str): Denotes total time of trace in human readable string.
                         :unchanged_percentage (float): The percentage of pings from the input trace whose location is unchanged in the cleaned trace.
                                                        The percentage will be w.r.t the number of non null pings in the input.
@@ -1259,10 +1261,10 @@ class CleanTrace():
                             :representative_latitude (float): Representative latitude of the stop event.
                             :representative_longitude (float): Representative longitude of the stop event.
 
-                        :global_stops_event_info (dict): A dictionary describing global stop information and has the following keys and values.
+                        :global_stop_events_info (dict): A dictionary describing global stop information and has the following keys and values.
                             :total_trace_time (str): Denotes total time taken in raw trace. Provided in human readable format.
-                            :total_stop_event_time (str): Denotes total time spent in stopping, in the entire trace. Provided in human readable format.
-                            :stop_events_percentage (float): Percentage of total_stop_event_time w.r.t. total_trace_time.
+                            :total_stop_events_time (str): Denotes total time spent in stopping, in the entire trace. Provided in human readable format.
+                            :stop_event_percentage (float): Percentage of total_stop_events_time w.r.t. total_trace_time.
         
         Raises:
             All exceptions raised by the following functions:

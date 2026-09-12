@@ -122,7 +122,8 @@ class CreateTraceData:
         Create filled input payload of pings from trace payload dictionary. Trace payload is expected to contain at least trace key and valid trace data as its value.
 
         Returns:
-            filled_input_payload (dict): A dictionary contain the list of Ping objects (corresponding to `ping_objects` key), and pings dataframe (corresponding to trace_df key)
+            filled_input_payload (dict): The input trace payload (`trace`, `vehicle_type`, `vehicle_speed`) with its optional values filled in, plus two added keys:
+                the list of Ping objects (`ping_objects`) and the pings dataframe (`trace_df`).
 
         Raises:
             ValidationException: Possible scenarios have been described in the documentation of validate_trace_payload function.

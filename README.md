@@ -55,9 +55,9 @@ Note: Apart from validation, **vehicle_type** and **vehicle_speed** information 
 
 # Important Resources
 
-* Input format: [Link](assets/docs/Tracely%20I_O%20Structure%20-%20input.pdf)
-* Output format: [Link](assets/docs/Tracely%20I_O%20Structure%20-%20output.pdf)
-* Exception handling document: [Link](assets/docs/Tracely%20I_O%20Structure%20-%20exception_handling.pdf)
+* Input format: [Link](assets/docs/INPUT_REFERENCE.md)
+* Output format: [Link](assets/docs/OUTPUT_REFERENCE.md)
+* Error reference (every exception, code and message): [Link](assets/docs/ERROR_REFERENCE.md)
 * Function's documentation: [Link](assets/docs/functions_documentation.md)
 
 

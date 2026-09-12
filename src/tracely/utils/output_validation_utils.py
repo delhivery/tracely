@@ -39,7 +39,7 @@ def validate_cleaned_trace(cleaned_trace):
         ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If cleaned_trace_cumulative_dist is not of data type int or float.
         ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If cleaned_trace_cumulative_time is not of data type int or float.
 
-        ValidationException (VALUE_EXCEPTION_CODE: 4003): If error_radius in ping is negative or equal to zero.
+        ValidationException (VALUE_EXCEPTION_CODE: 4003): If error_radius in ping is negative.
         ValidationException (VALUE_EXCEPTION_CODE: 4003): If time_since_prev_ping is negative.
         ValidationException (VALUE_EXCEPTION_CODE: 4003): If dist_from_prev_ping is negative.
         ValidationException (VALUE_EXCEPTION_CODE: 4003): If cleaned_trace_cumulative_dist is negative.
@@ -135,7 +135,7 @@ def _validate_cleaning_summary(cleaning_summary, raw_trace_length, name="cleanin
         ValidationException (VALUE_EXCEPTION_CODE: 4003): If updation_percentage is negative.
         ValidationException (VALUE_EXCEPTION_CODE: 4003): If interpolation_percentage is negative.
         ValidationException (VALUE_EXCEPTION_CODE: 4003): If total_execution_time is negative.
-        ValidationException (VALUE_EXCEPTION_CODE: 4003): If total_non_null_pings_in_input in cleaning summary is less than total_pings_in_input.
+        ValidationException (VALUE_EXCEPTION_CODE: 4003): If total_non_null_pings_in_input in cleaning summary is greater than total_pings_in_input.
         ValidationException (VALUE_EXCEPTION_CODE: 4003): If total_pings_in_input in cleaning summary is not equal to raw_trace_length.
         ValidationException (VALUE_EXCEPTION_CODE: 4003): If the sum of unchanged_percentage, drop_percentage, updation_percentage and interpolation_percentage is less than 99.9%.
     """
@@ -323,7 +323,7 @@ def _validate_stop_summary(stop_summary, name="stop_summary"):
     Validates the structure and contents of stop summary.
 
     Args:
-        stop_summary (list): A dictionary containing distance summary.
+        stop_summary (dict): A dictionary containing stop summary.
         name (str, optional): The name of the data variable. Defaults to "stop_summary".
 
     Raises:
@@ -456,7 +456,7 @@ def validate_clean_trace_output(clean_trace_output, raw_trace_length, name="clea
         ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If representative_longitude in an element in stop_events_info is not of data type int, float or None. stop_events_info is present in stop_summary.
         ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If an element in stop_events_info is not of data type dict. stop_events_info is present in stop_summary.
 
-        ValidationException (VALUE_EXCEPTION_CODE: 4003): If error_radius in a a ping in cleaned_trace in cleaned_trace is negative or equal to zero.
+        ValidationException (VALUE_EXCEPTION_CODE: 4003): If error_radius in a ping in cleaned_trace is negative.
         ValidationException (VALUE_EXCEPTION_CODE: 4003): If time_since_prev_ping is negative.
         ValidationException (VALUE_EXCEPTION_CODE: 4003): If dist_from_prev_ping is negative.
         ValidationException (VALUE_EXCEPTION_CODE: 4003): If cleaned_trace_cumulative_dist in a ping in cleaned_trace is negative.
@@ -473,7 +473,7 @@ def validate_clean_trace_output(clean_trace_output, raw_trace_length, name="clea
         ValidationException (VALUE_EXCEPTION_CODE: 4003): If cumulative_distance_of_clean_trace in distance_summary is negative.
         ValidationException (VALUE_EXCEPTION_CODE: 4003): If percent_reduction_in_dist in distance_summary is negative.
         ValidationException (VALUE_EXCEPTION_CODE: 4003): If stop_event_percentage in global_stop_events_info is negative. global_stop_events_info is present in stop_summary.
-        ValidationException (VALUE_EXCEPTION_CODE: 4003): If total_non_null_pings_in_input in cleaning_summary is less than total_pings_in_input.
+        ValidationException (VALUE_EXCEPTION_CODE: 4003): If total_non_null_pings_in_input in cleaning_summary is greater than total_pings_in_input.
         ValidationException (VALUE_EXCEPTION_CODE: 4003): If total_pings_in_input in cleaning_summary is not equal to raw_trace_length.
         ValidationException (VALUE_EXCEPTION_CODE: 4003): If the sum of unchanged_percentage, drop_percentage, updation_percentage and interpolation_percentage in cleaning_summary is less than 99.9%.
 

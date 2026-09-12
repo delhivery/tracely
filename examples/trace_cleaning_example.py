@@ -22,6 +22,9 @@ if __name__ == "__main__":
     # Remove nearby pings that are too close to each other
     clean_trace_obj.remove_nearby_pings(min_dist_bw_consecutive_pings=10)
 
+    # Remove pings implying a physically impossible speed from the previous kept ping
+    clean_trace_obj.remove_pings_by_speed(max_speed_kph=150)
+
     # Impute distorted pings using distance and angle criteria
     clean_trace_obj.impute_distorted_pings_with_distance(max_dist_ratio=3)
     clean_trace_obj.impute_distorted_pings_with_angle(max_delta_angle=120)

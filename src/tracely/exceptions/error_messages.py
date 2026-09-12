@@ -42,7 +42,7 @@ class ValidationErrorMessage:
     INVALID_DIST_THRESHOLDS_FOR_INTERPOLATION = "min_dist_from_prev_ping must be less than max_dist_from_prev_ping"
     INVALID_PING_BATCH_SIZE_FOR_MAP_MATCHING = "ping_batch_size cannot be less than 2"
     INVALID_MIN_SIZE_FOR_STOP_EVENTS_DETECTION = "min_size cannot be less than 2"
-    INVALID_MAX_DIST_RATIO_FOR_IMPUTATION = "max_dist_ratio can not be less than 0, but got {}"
+    INVALID_MAX_DIST_RATIO_FOR_IMPUTATION = "max_dist_ratio can not be less than 1, but got {}"
 
     FOUND_DUPLICATE_VALUES = "Expected values for '{}' to be unique, but found duplicate values"
     MISSING_MANDATORY_KEY_IN_PING = "Expected key: {} missing from a ping dictionary"

@@ -58,8 +58,8 @@ def process_trace_segments(segments,
                             :latitude (int, float)
                             :longitude (int, float)
                             :ping_id (str)
-                            :last_updated_by (str) 
-                            :flag (bool)
+                            :last_updated_by (str)
+                            :flag (int)
         osrm_url (str): A URL that specifies the endpoint for accessing map matching service provided by an OSRM instance.
                         Example: "http://127.0.0.1:5000/match/v1/driving/".
         map_matching_radius (int, float): The radius in meters for map matching. A location is map matched only if there is a road within the map matching radius. 
@@ -72,7 +72,7 @@ def process_trace_segments(segments,
                                      :longitude (int, float): Represents matched location's longitude if match is found else original longitude.
                                      :ping_id (str): Original ping id of the location. 
                                      :last_updated_by (str): The function of CleanTrace class which last updated the ping.
-                                     :flag (bool): 1 if no match is found else 2.
+                                     :flag (int): 1 if no match is found else 2.
     """
 
     matched_segments = []

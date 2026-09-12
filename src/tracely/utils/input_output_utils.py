@@ -17,6 +17,7 @@ def convert_csv_to_trace_payload(csv_file_path: str,
     Args:
         csv_file_path (str): Path to the CSV file containing trace data.
         vehicle_type (str, optional): The type of the vehicle used. Defaults to constants.DEFAULT_VEHICLE_TYPE.
+        vehicle_speed (int, float, optional): Average speed of the vehicle in kilometers per hour. Must be > 0. Defaults to constants.DEFAULT_VEHICLE_SPEED.
         force_retain_event_types (bool, optional): Indicates whether to update force_retain column flag(if present) on the basis of event_type column (if present). Defaults to True.
 
     Returns:
