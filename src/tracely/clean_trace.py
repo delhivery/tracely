@@ -264,6 +264,97 @@ class CleanTrace():
 
         self._add_runtime_info(function_name="remove_nearby_pings", time_taken=((time.time() - start_time)))
 
+    def remove_pings_by_speed(self,
+                              max_speed_kph=150) -> None:
+        """
+        Function to remove pings that imply a physically impossible speed from the previous kept ping.
+        Iterates through pings and computes the implied speed (haversine distance in km / elapsed time in hours) between the current ping and the previous KEPT ping.
+        If that implied speed exceeds `max_speed_kph` and force_retain for the current ping is False, the current ping is removed.
+        For a removed ping, its "cleaned_latitude" and "cleaned_longitude" are set to None, update_status is set to "dropped" and last_updated_by is set to "remove_pings_by_speed".
+        Does not drop an interpolated ping (ping added by "interpolate_trace" method).
+
+        This is a distinct failure mode from the ones "remove_nearby_pings" and "impute_distorted_pings_with_distance" address: a ping (or a short run of
+        consecutive pings) that is individually self-consistent -- not close to its neighbours (so "remove_nearby_pings" does not fire), and not a single
+        spike that detours far off an otherwise-straight prev-next line (so "impute_distorted_pings_with_distance"'s distance-ratio check does not fire
+        either, since a SUSTAINED displacement barely increases the prev->current->next detour ratio relative to going prev->next directly). A ping that
+        is physically impossible to reach from the previous kept ping in the elapsed time is still a real, catchable error -- this function catches it on
+        speed alone, independent of any detour-shape assumption.
+
+        Args:
+            max_speed_kph (int, float, optional): The maximum plausible instantaneous speed between two consecutive kept pings, in kilometers per hour. Defaults to 150.
+
+        Raises:
+            All exceptions raised by the following functions:
+                "DataValidationUtils.validate_remove_pings_by_speed_parameters" present in data_validation_utils.py.
+        """
+
+        start_time = time.time()
+
+        # Validate parameter
+        DataValidationUtils.validate_remove_pings_by_speed_parameters(max_speed_kph=max_speed_kph)
+
+        # Get the first ping as the starting reference
+        prev_ping = (self.trace_df.iloc[0]["cleaned_latitude"], self.trace_df.iloc[0]["cleaned_longitude"])
+        prev_timestamp = self.trace_df.iloc[0]["timestamp"]
+
+        # Create a mask to store which rows need to be updated
+        mask = np.zeros(len(self.trace_df), dtype=bool)
+
+        for i, row in enumerate(self.trace_df.to_dict("records")[1:], 1):
+
+            current_ping = (row["cleaned_latitude"], row["cleaned_longitude"])
+            current_timestamp = row["timestamp"]
+
+            if ((prev_ping[0] is None) or
+                (prev_ping[1] is None) or
+                (pd.isna(prev_ping[0])) or
+                (pd.isna(prev_ping[1]))):
+
+                prev_ping = current_ping
+                prev_timestamp = current_timestamp
+                continue
+
+            if ((current_ping[0] is None) or
+                (current_ping[1] is None) or
+                (pd.isna(current_ping[0])) or
+                (pd.isna(current_ping[1]))):
+                continue
+
+            # Do not update current ping if it is an interpolated ping
+            if row["update_status"] == "interpolated":
+                continue
+
+            elapsed_seconds = (current_timestamp - prev_timestamp) / 1000.0
+
+            if elapsed_seconds <= 0:
+                continue
+
+            # Calculate the distance between the current ping and the previous kept ping
+            distance_m = get_haversine_distance(prev_ping[0],
+                                                prev_ping[1],
+                                                current_ping[0],
+                                                current_ping[1])
+
+            if distance_m is None:
+                continue
+
+            implied_speed_kph = (distance_m / 1000.0) / (elapsed_seconds / 3600.0)
+
+            if (implied_speed_kph > max_speed_kph) and not (row["force_retain"]):
+                mask[i] = True
+                continue
+
+            # Update the previous ping/timestamp if the current one is kept
+            prev_ping = current_ping
+            prev_timestamp = current_timestamp
+
+        self.trace_df.loc[mask, ["cleaned_latitude", "cleaned_longitude", "update_status", "last_updated_by"]] = [None, None, "dropped", "remove_pings_by_speed"]
+
+        self.trace_df["cleaned_latitude"] = self.trace_df["cleaned_latitude"].replace({np.nan: None})
+        self.trace_df["cleaned_longitude"] = self.trace_df["cleaned_longitude"].replace({np.nan: None})
+
+        self._add_runtime_info(function_name="remove_pings_by_speed", time_taken=((time.time() - start_time)))
+
     def _impute_distorted_pings_with_distance(self,
                                               max_dist_ratio=3, 
                                               side_win_len=1) -> None:

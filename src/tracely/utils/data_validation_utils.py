@@ -652,6 +652,18 @@ class DataValidationUtils:
         DataValidationUtils.check_non_negative_int_or_float(min_dist_bw_consecutive_pings, "min_dist_bw_consecutive_pings")
 
     @staticmethod
+    def validate_remove_pings_by_speed_parameters(max_speed_kph):
+        """
+        Validate parameters.
+
+        Raises:
+            ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If `max_speed_kph` is not of data type int or float.
+            ValidationException (VALUE_EXCEPTION_CODE: 4003): If `max_speed_kph` is negative.
+        """
+
+        DataValidationUtils.check_non_negative_int_or_float(max_speed_kph, "max_speed_kph")
+
+    @staticmethod
     def validate_impute_distorted_pings_with_distance_parameters(max_dist_ratio):
         """
         Validate parameters.
