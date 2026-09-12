@@ -646,6 +646,186 @@ def test_remove_nearby_pings_for_interpolated_pings():
         assert ping["cumulative_stop_event_time"] == "0 minutes and 0 seconds"
 
 
+def test_remove_pings_by_speed_with_first_ping_null():
+    """Test remove pings by speed on valid payload, but first ping is null."""
+
+    payload = load_trace_payload("dummy_trace_input_payload")
+    count_pings = len(payload["trace"])
+
+    payload["trace"][0]["latitude"] = None
+    payload["trace"][0]["longitude"] = None
+    ping_id = payload["trace"][0]["ping_id"]
+
+    trace_data_obj = CleanTrace(payload)
+    trace_data_obj.remove_pings_by_speed()
+    clean_output = trace_data_obj.get_trace_cleaning_output()
+
+    assert len(clean_output["cleaned_trace"]) == count_pings
+
+    for ping in clean_output["cleaned_trace"]:
+        assert len(ping.keys()) == constants.CLEAN_PING_KEYS_COUNT
+
+        if ping["ping_id"] == ping_id:
+            # Since point's lat/lng are None, it should remain as it is
+            assert ping["update_status"] == "unchanged"
+
+
+def test_remove_pings_by_speed_on_normal_trace():
+    """A known-clean, constant ~79 kph trace must have zero pings dropped
+    by a generous 150 kph threshold. Deliberately NOT using the real
+    dummy_trace_input_payload fixture for this specific claim -- that
+    fixture is real-world GPS data and genuinely contains at least one
+    ~247 kph anomaly of its own (confirmed by inspection: ping_id 242,
+    740m in ~11s against its immediate predecessor in timestamp-sorted
+    order) -- asserting zero drops against unverified real data would be
+    the wrong claim to test here. A synthetic, precisely-known trace is
+    the correct ground truth for a "no false positives" test."""
+
+    base_ts = 1700000000000
+    payload = {
+        "trace": [
+            {"latitude": 28.500000 + i * 0.00197628, "longitude": 77.300000, "timestamp": base_ts + i * 10000}
+            for i in range(10)
+        ],
+        "vehicle_type": "car",
+    }
+    count_pings = len(payload["trace"])
+
+    trace_data_obj = CleanTrace(payload)
+    trace_data_obj.remove_pings_by_speed(max_speed_kph=150)
+    clean_output = trace_data_obj.get_trace_cleaning_output()
+
+    for ping in clean_output["cleaned_trace"]:
+        assert ping["update_status"] == "unchanged"
+        assert ping["last_updated_by"] == "never_updated"
+        assert len(ping.keys()) == constants.CLEAN_PING_KEYS_COUNT
+
+    assert len(clean_output["cleaned_trace"]) == count_pings
+    assert clean_output["cleaning_summary"]["drop_percentage"] == 0
+
+
+def test_remove_pings_by_speed_on_real_fixture_is_bounded():
+    """On real, unfiltered GPS data, remove_pings_by_speed should catch a
+    SMALL, bounded fraction of genuinely anomalous pings -- not zero
+    (real GPS data has some noise), and not a large fraction (a correct
+    implementation should not be trigger-happy on normal driving)."""
+
+    payload = load_trace_payload("dummy_trace_input_payload")
+    trace_data_obj = CleanTrace(payload)
+    trace_data_obj.remove_pings_by_speed()
+    clean_output = trace_data_obj.get_trace_cleaning_output()
+
+    assert 0 < clean_output["cleaning_summary"]["drop_percentage"] < 5
+
+
+def test_remove_pings_by_speed_drops_physically_impossible_jump():
+    """A ping implying an impossible speed from the previous kept ping
+    must be dropped -- this is the real, previously-uncaught failure mode
+    (a physically impossible jump that is NOT close to its neighbours, so
+    remove_nearby_pings does not fire, and does NOT create a large
+    detour-distance ratio relative to going prev->next directly if the
+    displacement is sustained across multiple consecutive pings, so
+    impute_distorted_pings_with_distance's ratio check does not reliably
+    fire either)."""
+
+    base_ts = 1700000000000
+    payload = {
+        "trace": [
+            {"latitude": 28.500000, "longitude": 77.300000, "timestamp": base_ts},
+            {"latitude": 28.500100, "longitude": 77.300100, "timestamp": base_ts + 10000},
+            # Impossible: ~40km away, 2 seconds later (~72,000 kph).
+            {"latitude": 28.860000, "longitude": 77.700000, "timestamp": base_ts + 12000},
+            {"latitude": 28.860010, "longitude": 77.700010, "timestamp": base_ts + 14000},
+            {"latitude": 28.500200, "longitude": 77.300200, "timestamp": base_ts + 24000},
+        ],
+        "vehicle_type": "car",
+    }
+
+    trace_data_obj = CleanTrace(payload)
+    trace_data_obj.remove_pings_by_speed(max_speed_kph=150)
+    clean_output = trace_data_obj.get_trace_cleaning_output()
+
+    statuses = [ping["update_status"] for ping in clean_output["cleaned_trace"]]
+    assert statuses == ["unchanged", "unchanged", "dropped", "dropped", "unchanged"]
+    assert clean_output["cleaning_summary"]["drop_percentage"] > 0
+
+
+def test_remove_pings_by_speed_respects_force_retain():
+    """A ping implying an impossible speed must still survive if its own
+    force_retain flag is True -- same override contract as
+    remove_nearby_pings."""
+
+    base_ts = 1700000000000
+    payload = {
+        "trace": [
+            {"latitude": 28.500000, "longitude": 77.300000, "timestamp": base_ts},
+            {"latitude": 28.860000, "longitude": 77.700000, "timestamp": base_ts + 2000, "force_retain": True},
+        ],
+        "vehicle_type": "car",
+    }
+
+    trace_data_obj = CleanTrace(payload)
+    trace_data_obj.remove_pings_by_speed(max_speed_kph=150)
+    clean_output = trace_data_obj.get_trace_cleaning_output()
+
+    assert clean_output["cleaned_trace"][1]["update_status"] == "unchanged"
+
+
+def test_remove_pings_by_speed_for_interpolated_pings():
+    """Test remove pings by speed for pings that are interpolated. These
+    pings should not be changed."""
+
+    payload = load_trace_payload("dummy_trace_input_payload")
+    payload["trace"] = payload["trace"][:100]
+    trace_data_obj = CleanTrace(payload)
+
+    trace_data_obj.trace_df["update_status"] = "interpolated"
+    trace_data_obj.remove_pings_by_speed(max_speed_kph=0)
+
+    clean_output = trace_data_obj.get_trace_cleaning_output()
+
+    for ping in clean_output["cleaned_trace"]:
+        assert (ping["update_status"] == "interpolated")
+
+
+def test_remove_pings_by_speed_invalid_parameter_type():
+    """Test for invalid data type for max_speed_kph."""
+
+    payload = load_trace_payload("dummy_trace_input_payload")
+    payload["trace"] = payload["trace"][:100]
+    trace_data_obj = CleanTrace(payload)
+
+    expected_error_msg = re.escape('("max_speed_kph must be of type Int or Float but found <class \'str\'>", 4002)')
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        trace_data_obj.remove_pings_by_speed(max_speed_kph="invalid_string")
+
+
+def test_remove_pings_by_speed_negative_parameter_value():
+    """Test for negative value for max_speed_kph."""
+
+    payload = load_trace_payload("dummy_trace_input_payload")
+    payload["trace"] = payload["trace"][:100]
+    trace_data_obj = CleanTrace(payload)
+
+    expected_error_msg = re.escape("('max_speed_kph cannot be negative', 4003)")
+
+    with pytest.raises(ValidationException, match=expected_error_msg):
+        trace_data_obj.remove_pings_by_speed(max_speed_kph=-5)
+
+
+def test_remove_pings_by_speed_zero_parameter_value():
+    """Test for zero value for max_speed_kph -- should run without error
+    (drops everything after the first kept ping, a legitimate if extreme
+    configuration)."""
+
+    payload = load_trace_payload("dummy_trace_input_payload")
+    payload["trace"] = payload["trace"][:100]
+    trace_data_obj = CleanTrace(payload)
+
+    trace_data_obj.remove_pings_by_speed(max_speed_kph=0)
+
+
 def test_impute_distorted_pings_with_distance():
     """Test test_impute_distorted_pings_with_distance on valid payload."""
 
