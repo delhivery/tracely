@@ -1647,7 +1647,7 @@ def test_impute_distorted_pings_negative_value():
     payload["trace"] = payload["trace"][:100]
     trace_data_obj = CleanTrace(payload)
 
-    expected_error_msg = re.escape("('max_dist_ratio can not be less than 0, but got -3', 4003)")
+    expected_error_msg = re.escape("('max_dist_ratio can not be less than 1, but got -3', 4003)")
 
     with pytest.raises(ValidationException, match=expected_error_msg):
         trace_data_obj.impute_distorted_pings_with_distance(max_dist_ratio=-3)
@@ -1660,7 +1660,7 @@ def test_impute_distorted_pings_zero_value():
     payload["trace"] = payload["trace"][:100]
     trace_data_obj = CleanTrace(payload)
 
-    expected_error_msg = re.escape("('max_dist_ratio can not be less than 0, but got 0', 4003)")
+    expected_error_msg = re.escape("('max_dist_ratio can not be less than 1, but got 0', 4003)")
 
     with pytest.raises(ValidationException, match=expected_error_msg):
         trace_data_obj.impute_distorted_pings_with_distance(max_dist_ratio=0)

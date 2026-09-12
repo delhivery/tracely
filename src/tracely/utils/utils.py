@@ -130,7 +130,7 @@ def convert_unix_timestamp_to_human_readable(timestamp: int) -> Union[str, None]
     """
 
     try:
-        # Create a timezone-aware datetime object in UTC
+        # Create a timezone-aware datetime object in IST (constants.timezone_offset)
         dt = datetime.datetime.fromtimestamp(timestamp,
                                              datetime.timezone(constants.timezone_offset))
         
@@ -146,14 +146,16 @@ def convert_time_interval_to_human_readable(time: int,
     Converts a time duration given in seconds into a human-readable format displaying hours, minutes, and seconds.
 
     Args:
-        time_ms (int): The time duration in seconds. Must be a non-negative integer.
+        time (int): The time duration in seconds. Must be a non-negative integer.
         format (str, optional): Format of output time string. Defaults to "hms" and can have following values:
                                 "hms" : include hour, minute, second in output time string.
                                 "ms" : include minute, second in output time string.
                                 "s" : include only second in output time string.
 
     Returns:
-        str: A string representing the time duration in hours, minutes, and seconds. The format is "{hours} hours, {minutes} minutes, {seconds} seconds".
+        str | None: The time duration formatted per `format` — "{hours} hours, {minutes} minutes and {seconds} seconds" for "hms",
+             "{minutes} minutes and {seconds} seconds" for "ms", or "{seconds} seconds" for "s". `None` if an exception occurs
+             (e.g. `time`/`format` of an unexpected type).
     """
 
     try:
@@ -209,7 +211,7 @@ def create_path(file_path):
         file_path (string): A file path.
 
     Returns:
-        bool: True if file_path already exists or if file_path was successfully created. Else False.
+        None. Creates the directories as a side effect; does not report success/failure.
     """
 
     if (not is_filename(file_path)):

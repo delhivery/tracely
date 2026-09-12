@@ -47,7 +47,7 @@ class DataValidationUtils:
         Checks if key is present within the `input_dict` or not.
 
         Raises:
-            ValidationException (OUTPUT_KEY_ERROR_EXCEPTION_CODE: 4001): If a mandatory key is missing from the `input_dict`.
+            ValidationException (KEY_ERROR_EXCEPTION_CODE: 4001): If a mandatory key is missing from the `input_dict`.
 
         Args:
             input_dict (dict): The dictionary for which we need to check the key.
@@ -404,11 +404,11 @@ class DataValidationUtils:
         Check if `ping_id` is of type str and is not an empty string.
 
         Raises:
-            ValidationException (VALUE_EXCEPTION_CODE: 4003): If `ping_id` is not of data type str.
+            ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If `ping_id` is not of data type str.
             ValidationException (VALUE_EXCEPTION_CODE: 4003): If `ping_id` is an empty string.
 
         Args:
-            ping_id (float, None): Ping ID to be evaluated.
+            ping_id (str): Ping ID to be evaluated.
         """
 
         DataValidationUtils.check_string(ping_id, name)
@@ -461,7 +461,7 @@ class DataValidationUtils:
             ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If metadata in ping is not of data type dict.
             ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If ping_id is not of data type str.
 
-            ValidationException (VALUE_EXCEPTION_CODE: 4003): If error_radius in ping is negative or equal to zero.
+            ValidationException (VALUE_EXCEPTION_CODE: 4003): If error_radius in ping is negative.
             ValidationException (VALUE_EXCEPTION_CODE: 4003): If ping_id is an empty string.
 
             ValidationException (INVALID_TIME_EXCEPTION_CODE: 4004): If timestamp in ping is not an integer or not in range [0, 2145916800000].
@@ -518,7 +518,7 @@ class DataValidationUtils:
             ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If ping_id is not of data type str.
             ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If ping_id is present in some pings but not all.
 
-            ValidationException (VALUE_EXCEPTION_CODE: 4003): If error_radius in ping is negative or equal to zero.
+            ValidationException (VALUE_EXCEPTION_CODE: 4003): If error_radius in ping is negative.
             ValidationException (VALUE_EXCEPTION_CODE: 4003): If duplicate ping_ids are present.
             ValidationException (VALUE_EXCEPTION_CODE: 4003): If ping_id is an empty string.
             ValidationException (VALUE_EXCEPTION_CODE: 4003): If latitude and longitude all pings is None.
@@ -601,7 +601,7 @@ class DataValidationUtils:
             ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If ping_id is not of data type str.
             ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If ping_id is present in some pings but not all.
 
-            ValidationException (VALUE_EXCEPTION_CODE: 4003): If error_radius in ping is negative or equal to zero.
+            ValidationException (VALUE_EXCEPTION_CODE: 4003): If error_radius in ping is negative.
             ValidationException (VALUE_EXCEPTION_CODE: 4003): If duplicate ping_ids are present.
             ValidationException (VALUE_EXCEPTION_CODE: 4003): If ping_id is an empty string.
             ValidationException (VALUE_EXCEPTION_CODE: 4003): If latitude and longitude all pings is None.
@@ -795,7 +795,7 @@ class DataValidationUtils:
         Raises:
             ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If `csv_file_path` is not of data type str.
             ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If `vehicle_type` is not of data type str.
-            ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If `vehicle_speed` is not of data type str.
+            ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If `vehicle_speed` is not of data type int or float.
             ValidationException (DATA_FORMAT_EXCEPTION_CODE: 4002): If `force_retain_event_types` is not of data type bool.
 
             ValidationException (VALUE_EXCEPTION_CODE: 4003): If `vehicle_speed` is zero or negative.

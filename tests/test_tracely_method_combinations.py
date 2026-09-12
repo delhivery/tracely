@@ -6,7 +6,7 @@ from tests.testing_utils import load_trace_payload
 
 # Function to test run combinations of trace cleaning methods
 def test_tracely_method_combinations():
-    methods = ["remove_nearby_pings", "impute_distorted_pings_with_distance", "impute_distorted_pings_with_angle", "map_match_trace", "interpolate_trace", "add_stop_events_info"]
+    methods = ["remove_nearby_pings", "remove_pings_by_speed", "impute_distorted_pings_with_distance", "impute_distorted_pings_with_angle", "map_match_trace", "interpolate_trace", "add_stop_events_info"]
     
     # Loop through combinations of methods
     for i in range(1, 4):  # i = number of methods to apply (from 1 to 3)
