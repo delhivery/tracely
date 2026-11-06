@@ -62,9 +62,11 @@ Note: Apart from validation, **vehicle_type** and **vehicle_speed** information 
 
 
 # Installing Tracely
-   Tracely depends on `infostop`, which compiles a small C++ extension (via `infomap`) during install.
-   A C++ compiler must be available on your system beforehand — `install_tracely.sh` checks for one and
-   prints the install command for your OS if it's missing.
+   Tracely compiles one small internal extension of its own during install (replacing what the
+   now-unmaintained `infostop` package used to provide). A C/C++ compiler must be available on your
+   system beforehand — `install_tracely.sh` checks for one and prints the install command for your OS
+   if it's missing. `infomap`, tracely's one remaining native dependency, installs from a prebuilt
+   package for your platform and needs no compiler at all.
 
    Create an environment with python 3.11 and activate the python environment and run following commands. Then you can use the [usage example](#usage) directly.
 
@@ -76,6 +78,33 @@ Note: Apart from validation, **vehicle_type** and **vehicle_speed** information 
    >>> python -m examples.trace_cleaning_example
    >>> python -m examples.stop_summary_example
    ```
+
+### Using tracely as a vendored source checkout (e.g. a git submodule), without installing it
+
+   If you're importing tracely by pointing directly at a raw checkout of its source
+   (for example, vendoring it as a git submodule and importing its `src/tracely/...`
+   modules directly, rather than installing it) you need `install_tracely.sh`'s other
+   mode. Checking out the submodule (even via `git submodule update --init --recursive`)
+   never builds anything — same as a plain `git clone` never would. Run this once, from
+   that checkout, any time it's first used, re-cloned fresh, or updated to a commit that
+   changed the extension's source:
+
+   ```python
+   >>> cd <path to the tracely checkout>
+   >>> ./install_tracely.sh --build-only
+   ```
+
+   This builds the extension in place and does nothing else — no `pip install` of
+   tracely itself, no dependency changes. That matters if more than one tracely
+   checkout/version needs to coexist in the same environment: a real `pip install` (the
+   default, no-argument mode above) registers tracely as a package for that *whole*
+   environment, which makes every other submodule-style checkout sharing that
+   environment resolve to whichever one was installed last, not its own files.
+   `--build-only` never registers anything, so it's safe to run independently for as many
+   separate checkouts as you need. **Don't run the default (no-argument) mode of
+   `install_tracely.sh`, or any other real `pip install`/`pip install -e` of tracely, in
+   an environment where you're also relying on this submodule-style, un-installed
+   import — doing so will break it for every checkout sharing that environment.**
 
 
 # OSRM dependency

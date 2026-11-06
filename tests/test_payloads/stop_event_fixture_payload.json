@@ -1,0 +1,339 @@
+{
+    "trace": [
+        {
+            "latitude": 19.04999809518214,
+            "longitude": 73.07000239089544,
+            "timestamp": 1700000000000,
+            "ping_id": "1",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.05001696842336,
+            "longitude": 73.0699986260028,
+            "timestamp": 1700000015000,
+            "ping_id": "2",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.050000313650923,
+            "longitude": 73.07000349539315,
+            "timestamp": 1700000030000,
+            "ping_id": "3",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.049987386413754,
+            "longitude": 73.07000047634556,
+            "timestamp": 1700000045000,
+            "ping_id": "4",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.05000519530881,
+            "longitude": 73.0700117190749,
+            "timestamp": 1700000060000,
+            "ping_id": "5",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.04998376493825,
+            "longitude": 73.0699921360505,
+            "timestamp": 1700000075000,
+            "ping_id": "6",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.0499836268215,
+            "longitude": 73.07001238578137,
+            "timestamp": 1700000090000,
+            "ping_id": "7",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.050007737539303,
+            "longitude": 73.06998167521344,
+            "timestamp": 1700000105000,
+            "ping_id": "8",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.050019287736834,
+            "longitude": 73.07001859031124,
+            "timestamp": 1700000120000,
+            "ping_id": "9",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.050006156901343,
+            "longitude": 73.07000462250818,
+            "timestamp": 1700000135000,
+            "ping_id": "10",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.049986299763805,
+            "longitude": 73.06998060002947,
+            "timestamp": 1700000150000,
+            "ping_id": "11",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.050001135250646,
+            "longitude": 73.0699823820442,
+            "timestamp": 1700000165000,
+            "ping_id": "12",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.04998760833051,
+            "longitude": 73.06998967772054,
+            "timestamp": 1700000180000,
+            "ping_id": "13",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.04998120330357,
+            "longitude": 73.06999855737844,
+            "timestamp": 1700000195000,
+            "ping_id": "14",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.049997621244668,
+            "longitude": 73.07001369708513,
+            "timestamp": 1700000210000,
+            "ping_id": "15",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.051000000000002,
+            "longitude": 73.071,
+            "timestamp": 1700000225000,
+            "ping_id": "16",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.052,
+            "longitude": 73.07199999999999,
+            "timestamp": 1700000235000,
+            "ping_id": "17",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.053,
+            "longitude": 73.073,
+            "timestamp": 1700000245000,
+            "ping_id": "18",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.054000000000002,
+            "longitude": 73.074,
+            "timestamp": 1700000255000,
+            "ping_id": "19",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.055,
+            "longitude": 73.07499999999999,
+            "timestamp": 1700000265000,
+            "ping_id": "20",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.056,
+            "longitude": 73.076,
+            "timestamp": 1700000275000,
+            "ping_id": "21",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.057000000000002,
+            "longitude": 73.077,
+            "timestamp": 1700000285000,
+            "ping_id": "22",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.058,
+            "longitude": 73.07799999999999,
+            "timestamp": 1700000295000,
+            "ping_id": "23",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.059,
+            "longitude": 73.079,
+            "timestamp": 1700000305000,
+            "ping_id": "24",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.060000000000002,
+            "longitude": 73.08,
+            "timestamp": 1700000315000,
+            "ping_id": "25",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.06500076496459,
+            "longitude": 73.08500561166831,
+            "timestamp": 1700000325000,
+            "ping_id": "26",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.06499999092609,
+            "longitude": 73.08500649798127,
+            "timestamp": 1700000337000,
+            "ping_id": "27",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.064998293195266,
+            "longitude": 73.08499112651597,
+            "timestamp": 1700000349000,
+            "ping_id": "28",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.06501990624802,
+            "longitude": 73.08501982766566,
+            "timestamp": 1700000361000,
+            "ping_id": "29",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.06501360862198,
+            "longitude": 73.08500831238486,
+            "timestamp": 1700000373000,
+            "ping_id": "30",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.06499261108868,
+            "longitude": 73.08498918663607,
+            "timestamp": 1700000385000,
+            "ping_id": "31",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.064991561597893,
+            "longitude": 73.08498280893997,
+            "timestamp": 1700000397000,
+            "ping_id": "32",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.065010651515458,
+            "longitude": 73.08499601599219,
+            "timestamp": 1700000409000,
+            "ping_id": "33",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.065013863344877,
+            "longitude": 73.08499546054126,
+            "timestamp": 1700000421000,
+            "ping_id": "34",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.065018321695334,
+            "longitude": 73.08501389239093,
+            "timestamp": 1700000433000,
+            "ping_id": "35",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.064980021797485,
+            "longitude": 73.08498838869659,
+            "timestamp": 1700000445000,
+            "ping_id": "36",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        },
+        {
+            "latitude": 19.065016410877124,
+            "longitude": 73.08499879949103,
+            "timestamp": 1700000457000,
+            "ping_id": "37",
+            "error_radius": 10.0,
+            "force_retain": false,
+            "metadata": {}
+        }
+    ],
+    "vehicle_type": "car",
+    "vehicle_speed": 25
+}

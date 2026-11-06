@@ -3,11 +3,11 @@ import time
 import pandas as pd
 import numpy as np
 import folium as fl
-from infostop import Infostop
 
 from . import constants
 from .create_trace_data import CreateTraceData
 from .utils.data_validation_utils import DataValidationUtils
+from .stop_detection.stop_detection_utils import get_stop_labels
 from .utils.utils import get_haversine_distance, \
                          calculate_change_in_direction, \
                          convert_unix_timestamp_to_human_readable, \
@@ -761,22 +761,16 @@ class CleanTrace():
             list: List of labels of size same as number of pings in input trace_list
         """
 
-        # Infostop raises error if no stop ping is detected, we handle this error by returning all labels (in label list) as -1
+        # get_stop_labels raises an error if no stop ping is detected, we handle this error by returning all labels (in label list) as -1
         # This does not impact data because label for all non stopping pings is also -1 by default.
         try:
-            # Convert trace list into numpy array
-            trace_list = np.array(trace_list)
-
-            # Create instance of label prediction model
-            model = Infostop(r1=max_dist_bw_consecutive_pings, 
-                             r2=max_dist_for_merging_stop_points, 
-                             min_size=min_size,
-                             min_staying_time=min_staying_time)
-            
-            # Predict label
-            labels = model.fit_predict(trace_list)
+            labels = get_stop_labels(trace_list,
+                                     max_dist_bw_consecutive_pings=max_dist_bw_consecutive_pings,
+                                     max_dist_for_merging_stop_points=max_dist_for_merging_stop_points,
+                                     min_size=min_size,
+                                     min_staying_time=min_staying_time)
             return labels
-        
+
         except Exception:
             return [-1 for _ in range(len(trace_list))]
 
