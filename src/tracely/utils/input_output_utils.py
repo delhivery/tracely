@@ -66,8 +66,6 @@ def convert_csv_to_trace_payload(csv_file_path: str,
                 # For numerical columns, use replace to handle NaN -> default_value
                 df[optional_column] = df[optional_column].replace(np.nan, default_value)
 
-    df = df.where(df.notna(), None)
-
     # Get list of columns that contain metadata
     metadata_columns = list(set(df.columns).difference(set(constants.MANDATORY_KEYS_IN_A_PING).
                                             union(set(list(constants.OPTIONAL_ITEMS_IN_A_PING.keys())))))
@@ -90,7 +88,7 @@ def convert_csv_to_trace_payload(csv_file_path: str,
         ping_dict["metadata"] = {}
 
         # Add optional columns
-        ping_dict.update({col: row[col] for col in optional_columns_present_in_csv})
+        ping_dict.update({col: (None if pd.isna(row[col]) else row[col]) for col in optional_columns_present_in_csv})
 
         # Add force retain
         if (update_force_retain_flag):
@@ -102,10 +100,11 @@ def convert_csv_to_trace_payload(csv_file_path: str,
 
         # Add metadata
         for col in metadata_columns:
+            metadata_value = None if pd.isna(row[col]) else row[col]
             if(col == "tracely_internal_old_metadata_col"):
-                ping_dict["metadata"]["metadata"] = row[col]
+                ping_dict["metadata"]["metadata"] = metadata_value
             else:
-                ping_dict["metadata"][col] = row[col]
+                ping_dict["metadata"][col] = metadata_value
 
         # Add row data to trace list
         trace.append(ping_dict)

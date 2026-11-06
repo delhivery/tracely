@@ -259,8 +259,8 @@ class CleanTrace():
 
         self.trace_df.loc[mask, ["cleaned_latitude", "cleaned_longitude", "update_status", "last_updated_by"]] = [None, None, "dropped", "remove_nearby_pings"]
 
-        self.trace_df["cleaned_latitude"].replace({np.nan: None}, inplace=True)
-        self.trace_df["cleaned_longitude"].replace({np.nan: None}, inplace=True)
+        self.trace_df["cleaned_latitude"] = self.trace_df["cleaned_latitude"].replace({np.nan: None})
+        self.trace_df["cleaned_longitude"] = self.trace_df["cleaned_longitude"].replace({np.nan: None})
 
         self._add_runtime_info(function_name="remove_nearby_pings", time_taken=((time.time() - start_time)))
 
@@ -806,9 +806,8 @@ class CleanTrace():
                                                         }).reset_index()
 
         # Renaming columns to "representative_stop_event_latitude" and "representative_stop_event_longitude"
-        grouped.rename(columns={"cleaned_latitude": "representative_stop_event_latitude",
-                                "cleaned_longitude": "representative_stop_event_longitude"},
-                       inplace=True)
+        grouped = grouped.rename(columns={"cleaned_latitude": "representative_stop_event_latitude",
+                                          "cleaned_longitude": "representative_stop_event_longitude"})
 
         # Merging the representative values back into the original trace_df_copy
         trace_df_copy = self._merge_dataframes(df1=trace_df_copy,
@@ -836,7 +835,7 @@ class CleanTrace():
                                                match_key="ping_id",
                                                common_keys=["ping_id","cumulative_stop_event_time","stop_event_sequence_number"])
 
-        trace_df_copy["cumulative_stop_event_time"].replace({np.nan: 0}, inplace=True)
+        trace_df_copy["cumulative_stop_event_time"] = trace_df_copy["cumulative_stop_event_time"].replace({np.nan: 0})
         trace_df_copy["cumulative_stop_event_time"] = trace_df_copy.apply(lambda row: convert_time_interval_to_human_readable(row["cumulative_stop_event_time"], 
                                                                                                                               format="ms"),
                                                                     axis=1)
@@ -898,8 +897,8 @@ class CleanTrace():
                                               stop_info_df, "ping_id", 
                                               common_keys=constants.STOP_INFO_KEYS)
         
-        stop_info_df["representative_stop_event_latitude"].replace({np.nan: None}, inplace=True)
-        stop_info_df["representative_stop_event_longitude"].replace({np.nan: None}, inplace=True)
+        stop_info_df["representative_stop_event_latitude"] = stop_info_df["representative_stop_event_latitude"].replace({np.nan: None})
+        stop_info_df["representative_stop_event_longitude"] = stop_info_df["representative_stop_event_longitude"].replace({np.nan: None})
         stop_info_df["stop_event_sequence_number"] = stop_info_df["stop_event_sequence_number"].astype(int)
         self.trace_df = stop_info_df
 
@@ -992,25 +991,25 @@ class CleanTrace():
 
         # Add dist_from_prev_ping to instance's trace dataframe
         self.trace_df["dist_from_prev_ping"] = self._add_distance_bw_pings(self.trace_df)
-        self.trace_df["dist_from_prev_ping"].replace({np.nan: 0}, inplace=True)
+        self.trace_df["dist_from_prev_ping"] = self.trace_df["dist_from_prev_ping"].replace({np.nan: 0})
 
         # Add cleaned_trace_cumulative_dist to instance's trace dataframe
         self.trace_df["cleaned_trace_cumulative_dist"] = self.trace_df["dist_from_prev_ping"].cumsum()
-        self.trace_df["cleaned_trace_cumulative_dist"].replace({np.nan: 0}, inplace=True)
+        self.trace_df["cleaned_trace_cumulative_dist"] = self.trace_df["cleaned_trace_cumulative_dist"].replace({np.nan: 0})
 
         # Add time_since_prev_ping to instance's trace dataframe
         self.trace_df["time_since_prev_ping"] = self._add_time_interval_bw_pings(self.trace_df)
-        self.trace_df["time_since_prev_ping"].replace({np.nan: 0}, inplace=True)
+        self.trace_df["time_since_prev_ping"] = self.trace_df["time_since_prev_ping"].replace({np.nan: 0})
 
         # Add cleaned_trace_cumulative_time to instance's trace dataframe
         self.trace_df["cleaned_trace_cumulative_time"] = self.trace_df["time_since_prev_ping"].cumsum()
-        self.trace_df["cleaned_trace_cumulative_time"].replace({np.nan: 0}, inplace=True)
+        self.trace_df["cleaned_trace_cumulative_time"] = self.trace_df["cleaned_trace_cumulative_time"].replace({np.nan: 0})
 
         output_trace = self._match_metadata(self.trace_df[constants.CLEAN_TRACE_COLUMNS_WITHOUT_METADATA].to_dict(orient="records"))
         output_trace_df = pd.DataFrame(output_trace)
 
         for column in output_trace_df.columns:
-            output_trace_df[column].replace({np.nan: None}, inplace=True)
+            output_trace_df[column] = output_trace_df[column].replace({np.nan: None})
 
         output_trace = output_trace_df.to_dict(orient="records")
 
@@ -1079,7 +1078,7 @@ class CleanTrace():
 
         # Create copy of dataframe (only input_latitude, input_longitude columns) with only not null pings.
         trace_lat_lng_df = copy.deepcopy(self.trace_df[["input_latitude", "input_longitude"]])
-        trace_lat_lng_df.dropna(inplace=True)
+        trace_lat_lng_df = trace_lat_lng_df.dropna()
 
         # Add previous ping for each ping
         trace_lat_lng_df["previous_latitude"] = trace_lat_lng_df["input_latitude"].shift(1)

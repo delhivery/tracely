@@ -73,7 +73,7 @@ if [ "$BUILD_ONLY" = true ]; then
   # install of tracely itself, so this environment's "tracely" package name (if any)
   # is left completely alone.
   echo "Installing build tools..."
-  python3 -m pip install Cython==3.0.11 numpy==1.24.4
+  python3 -m pip install "Cython>=3.1.3" "numpy>=2.3.2"
 
   echo "Building tracely's compiled extension in place..."
   python3 setup.py build_ext --inplace
