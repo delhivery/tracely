@@ -429,9 +429,8 @@ def _plot_stopping_map(trace_df,
     # Replace values using replacement_dict
     replacement_dict = {"input_latitude": {None: np.nan},"input_longitude": {None: np.nan}}
     
-    trace_df.replace(replacement_dict, inplace=True)
-    trace_df.dropna(subset=["input_latitude" + suffix, "input_longitude" + suffix],
-                    inplace=True)
+    trace_df = trace_df.replace(replacement_dict)
+    trace_df = trace_df.dropna(subset=["input_latitude" + suffix, "input_longitude" + suffix])
     
     trace_df = trace_df[(trace_df["stop_event_status" + suffix] == True)]
 

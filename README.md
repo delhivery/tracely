@@ -68,7 +68,7 @@ Note: Apart from validation, **vehicle_type** and **vehicle_speed** information 
    if it's missing. `infomap`, tracely's one remaining native dependency, installs from a prebuilt
    package for your platform and needs no compiler at all.
 
-   Create an environment with python 3.11 and activate the python environment and run following commands. Then you can use the [usage example](#usage) directly.
+   Create an environment with python 3.11, 3.12, 3.13, or 3.14 and activate the python environment and run following commands. Then you can use the [usage example](#usage) directly.
 
    ```python
    >>> git clone https://github.com/delhivery/tracely.git
