@@ -1,8 +1,42 @@
 #!/bin/bash
 
+# Usage:
+#   ./install_tracely.sh              Normal install: build a wheel, pip install it into
+#                                      the current environment. Use this if you just want
+#                                      to use tracely normally in this environment.
+#
+#   ./install_tracely.sh --build-only Build tracely's one compiled extension in place,
+#                                      inside this checkout, and do nothing else -- no
+#                                      pip install of tracely itself. Use this if you're
+#                                      consuming tracely as a vendored/git-submodule source
+#                                      checkout (importing it directly rather than
+#                                      installing it), especially if multiple different
+#                                      tracely checkouts/versions need to coexist in the
+#                                      same environment: a normal install registers
+#                                      tracely as a real package for that *whole*
+#                                      environment, which would make every other
+#                                      submodule-style checkout in the same environment
+#                                      resolve to whichever one was installed last, not
+#                                      its own files. --build-only never registers
+#                                      anything, so it's safe to run independently for as
+#                                      many separate checkouts as you need.
+#
+# Either mode needs a C/C++ compiler present (checked below) to build the one extension;
+# in --build-only mode it needs to be re-run any time this checkout is re-cloned fresh or
+# updated to a commit that changed the extension's source.
+
 # Ensure the script is run with bash
 if [ -z "$BASH_VERSION" ]; then
   echo "This script must be run with bash."
+  exit 1
+fi
+
+BUILD_ONLY=false
+if [ "$1" = "--build-only" ]; then
+  BUILD_ONLY=true
+elif [ -n "$1" ]; then
+  echo "Unknown argument: $1"
+  echo "Usage: ./install_tracely.sh [--build-only]"
   exit 1
 fi
 
@@ -13,9 +47,11 @@ if [ "$PYTHON_VERSION" != "True" ]; then
   exit 1
 fi
 
-# Ensure a C++ compiler is available (needed to build tracely's infostop/infomap dependency)
+# Ensure a C/C++ compiler is available (needed to build tracely's own small compiled
+# extension, tracely.stop_detection._stop_event_grouping -- infomap itself installs
+# from a prebuilt wheel, no compiler needed for that part)
 if ! command -v g++ >/dev/null 2>&1; then
-  echo "Error: A C++ compiler (g++) is required to build tracely's dependencies but was not found."
+  echo "Error: A C++ compiler (g++) is required to build tracely's compiled extension but was not found."
   echo ""
   echo "Install it for your OS, then re-run this script:"
   echo ""
@@ -32,21 +68,32 @@ if ! command -v g++ >/dev/null 2>&1; then
   exit 1
 fi
 
-# Install necessary build tools
-# setuptools is pinned below 81 because tracely's infostop -> infomap==1.0.6 dependency
-# still imports pkg_resources in its setup.py, which setuptools>=81 no longer ships.
-echo "Installing build tools..."
-python3 -m pip install --upgrade pip
-python3 -m pip install "setuptools<81" wheel twine build pybind11
+if [ "$BUILD_ONLY" = true ]; then
+  # Build-only mode: compile the extension in place, touch nothing else -- no pip
+  # install of tracely itself, so this environment's "tracely" package name (if any)
+  # is left completely alone.
+  echo "Installing build tools..."
+  python3 -m pip install Cython==3.0.11 numpy==1.24.4
 
-# Build the package
-echo "Building the package..."
-python3 -m build --wheel --sdist .
+  echo "Building tracely's compiled extension in place..."
+  python3 setup.py build_ext --inplace
 
-# Install the package
-# --no-build-isolation is required so infomap's build uses the setuptools<81 pinned
-# above instead of pip fetching the latest setuptools into an isolated build env.
-echo "Installing the package..."
-python3 -m pip install --no-build-isolation dist/tracely-1.0.0-py3-none-any.whl --force-reinstall
+  echo "Done. tracely's compiled extension is built in place in this checkout."
+else
+  # Normal mode: build a real wheel and pip install it into the current environment.
+  echo "Installing build tools..."
+  python3 -m pip install --upgrade pip
+  python3 -m pip install setuptools wheel twine build Cython
 
-echo "Installation complete!"
+  echo "Building the package..."
+  python3 -m build --wheel --sdist .
+
+  # --no-build-isolation ensures the wheel install re-uses the numpy already installed
+  # in this environment (matching what tracely.stop_detection._stop_event_grouping was
+  # compiled against), instead of pip resolving a separate numpy into an isolated build env.
+  echo "Installing the package..."
+  TRACELY_WHEEL=$(ls dist/tracely-*.whl)
+  python3 -m pip install --no-build-isolation "$TRACELY_WHEEL" --force-reinstall
+
+  echo "Installation complete!"
+fi

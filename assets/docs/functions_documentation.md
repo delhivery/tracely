@@ -150,7 +150,9 @@ clean_trace_object.interpolate_trace()
 ### 2.1 Stop events detection
 
 #### Description
-The `add_stop_events_info` function detects stop events from trace data, using infostop open source library.
+The `add_stop_events_info` function detects stop events from trace data, grouping nearby
+time-consecutive pings into stationary events and clustering nearby stationary events together
+using Infomap community detection.
 
 #### Parameters
 - **max_dist_bw_consecutive_pings** (`int`, `float`, optional): Max distance between time-consecutive pings to label them as part of a stop event. Defaults to `10`.

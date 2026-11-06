@@ -1,0 +1,1 @@
+include src/tracely/stop_detection/_stop_event_grouping.pyx

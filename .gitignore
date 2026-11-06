@@ -6,6 +6,9 @@ __pycache__/
 # C extensions
 *.so
 
+# Cython-generated C source (regenerated from _stop_event_grouping.pyx at build time)
+src/tracely/stop_detection/_stop_event_grouping.c
+
 # Distribution / packaging
 .Python
 build/
