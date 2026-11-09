@@ -3,6 +3,72 @@ from ..exceptions.custom_exceptions import ValidationException
 from ..exceptions.error_messages import ValidationErrorMessage, \
                                         ValidationErrorCode
 
+_MANDATORY_INPUT_PING_KEYS = frozenset(constants.MANDATORY_KEYS_IN_A_PING)
+_ALLOWED_INPUT_PING_KEYS = frozenset(constants.MANDATORY_KEYS_IN_A_PING) | frozenset(constants.OPTIONAL_ITEMS_IN_A_PING)
+
+
+def _input_ping_is_obviously_valid(ping_dict):
+    """
+    Pure boolean check (never raises) mirroring every check
+    `DataValidationUtils.validate_ping` would otherwise run through its
+    lambda-dispatch loop, inlined to avoid several function calls per
+    ping. Returns False on ANY doubt -- the caller must fall back to the
+    original `validate_ping` whenever this returns False, to raise the
+    exact right exception. Mirrors `isinstance` semantics exactly
+    (`isinstance(True, int)` is True in Python, same as the functions
+    this mirrors).
+    """
+
+    try:
+        if not isinstance(ping_dict, dict) or not ping_dict:
+            return False
+
+        keys = ping_dict.keys()
+        if not (_MANDATORY_INPUT_PING_KEYS <= keys) or not (keys <= _ALLOWED_INPUT_PING_KEYS):
+            return False
+
+        v = ping_dict["latitude"]
+        if v is not None and (not isinstance(v, (int, float)) or v < -90 or v > 90):
+            return False
+
+        v = ping_dict["longitude"]
+        if v is not None and (not isinstance(v, (int, float)) or v < -180 or v > 180):
+            return False
+
+        v = ping_dict["timestamp"]
+        if not isinstance(v, int) or v < 0 or v > constants.MAXIMUM_UNIX_TIMESTAMP:
+            return False
+
+        if "ping_id" in ping_dict:
+            v = ping_dict["ping_id"]
+            if not isinstance(v, str) or len(v) == 0:
+                return False
+
+        if "error_radius" in ping_dict:
+            v = ping_dict["error_radius"]
+            if v is not None and (not isinstance(v, (int, float)) or v < 0):
+                return False
+
+        if "event_type" in ping_dict:
+            v = ping_dict["event_type"]
+            if v is not None and not isinstance(v, str):
+                return False
+
+        if "force_retain" in ping_dict and not isinstance(ping_dict["force_retain"], bool):
+            return False
+
+        if "metadata" in ping_dict:
+            v = ping_dict["metadata"]
+            if not isinstance(v, dict):
+                return False
+            for key in v:
+                if not isinstance(key, str):
+                    return False
+
+        return True
+    except (KeyError, TypeError, AttributeError):
+        return False
+
 
 class DataValidationUtils:
 
@@ -472,6 +538,9 @@ class DataValidationUtils:
         Args:
             ping_dict(dict) : Ping dict to be validated.
         """
+
+        if _input_ping_is_obviously_valid(ping_dict):
+            return
 
         DataValidationUtils.check_empty_dict(ping_dict, name)
 

@@ -3,6 +3,87 @@ from .data_validation_utils import DataValidationUtils
 from ..exceptions.custom_exceptions import ValidationException
 from ..exceptions.error_messages import ValidationErrorMessage, ValidationErrorCode
 
+# Frozenset of the exact expected key set for a ping in a cleaned trace --
+# used for a single O(1)-ish set-equality fast path (ping.keys() == this)
+# instead of calling check_key_in_a_dict() once per expected key plus a
+# per-actual-key "is this expected" check, every single ping. Falls back
+# to the original per-key loop (unchanged) whenever the sets don't match,
+# so the exact same exception/message is raised for any real mismatch --
+# this only short-circuits the common (valid) case.
+_CLEAN_TRACE_COLUMNS_SET = frozenset(constants.CLEAN_TRACE_COLUMNS)
+
+
+def _ping_is_obviously_valid(ping):
+    """
+    Pure boolean check (never raises) mirroring every per-field check
+    `validate_cleaned_trace` would otherwise run through
+    `DataValidationUtils`/lambda dispatch, inlined to avoid ~20 function
+    calls per ping. Returns False on ANY doubt (including a value this
+    function doesn't recognize how to check), never True unless every
+    single field provably passes -- the caller must fall back to the
+    original per-field validation_functions loop whenever this returns
+    False, to raise the exact right exception.
+
+    Mirrors Python's `isinstance` semantics exactly, including that
+    `isinstance(True, int)` is True in Python -- so a bool value passes
+    an int/float check here too, matching `DataValidationUtils.check_int`/
+    `check_int_or_float`, which use plain `isinstance`, not `type() is`.
+    """
+
+    try:
+        for lat_key in ("input_latitude", "cleaned_latitude", "representative_stop_event_latitude"):
+            v = ping[lat_key]
+            if v is not None and (not isinstance(v, (int, float)) or v < -90 or v > 90):
+                return False
+
+        for lng_key in ("input_longitude", "cleaned_longitude", "representative_stop_event_longitude"):
+            v = ping[lng_key]
+            if v is not None and (not isinstance(v, (int, float)) or v < -180 or v > 180):
+                return False
+
+        v = ping["timestamp"]
+        if not isinstance(v, int) or v < 0 or v > constants.MAXIMUM_UNIX_TIMESTAMP:
+            return False
+
+        v = ping["error_radius"]
+        if v is not None and (not isinstance(v, (int, float)) or v < 0):
+            return False
+
+        v = ping["event_type"]
+        if v is not None and not isinstance(v, str):
+            return False
+
+        if not isinstance(ping["force_retain"], bool):
+            return False
+        if not isinstance(ping["stop_event_status"], bool):
+            return False
+
+        metadata = ping["metadata"]
+        if not isinstance(metadata, dict):
+            return False
+        for key in metadata:
+            if not isinstance(key, str):
+                return False
+
+        for str_key in ("update_status", "last_updated_by", "ping_id", "cumulative_stop_event_time"):
+            if not isinstance(ping[str_key], str):
+                return False
+
+        if not isinstance(ping["stop_event_sequence_number"], int):
+            return False
+
+        for nonneg_key in ("time_since_prev_ping", "dist_from_prev_ping",
+                          "cleaned_trace_cumulative_dist", "cleaned_trace_cumulative_time"):
+            v = ping[nonneg_key]
+            if not isinstance(v, (int, float)) or v < 0:
+                return False
+
+        return True
+    except (KeyError, TypeError):
+        # Any unexpected shape -- let the original, always-correct
+        # per-field loop run and raise the exact right exception.
+        return False
+
 
 def validate_cleaned_trace(cleaned_trace):
     """
@@ -91,15 +172,26 @@ def validate_cleaned_trace(cleaned_trace):
     for ping in cleaned_trace:
         DataValidationUtils.check_empty_dict(ping, "ping")
 
-        for key in constants.CLEAN_TRACE_COLUMNS:
-            DataValidationUtils.check_key_in_a_dict(ping, key)
+        if ping.keys() == _CLEAN_TRACE_COLUMNS_SET and _ping_is_obviously_valid(ping):
+            # Exact expected key set, every field provably passes its
+            # check -- same conclusion the loop below would reach, just
+            # without ~20 function calls (dict dispatch + staticmethod +
+            # isinstance) per ping. Falls back below whenever not sure.
+            continue
+
+        if ping.keys() != _CLEAN_TRACE_COLUMNS_SET:
+            # Not the expected exact key set -- fall back to the original
+            # per-key loop so the exact same exception is raised (missing
+            # key, or an unexpected key via the loop below).
+            for key in constants.CLEAN_TRACE_COLUMNS:
+                DataValidationUtils.check_key_in_a_dict(ping, key)
 
         # Check data type of keys in ping
         for key, value in ping.items():
             if key in validation_functions:
                 validation_functions[key](value)
             else:
-                raise ValidationException(ValidationErrorMessage.UNEXPECTED_KEYS_IN_DICT.format("ping"), 
+                raise ValidationException(ValidationErrorMessage.UNEXPECTED_KEYS_IN_DICT.format("ping"),
                                           ValidationErrorCode.KEY_ERROR_EXCEPTION_CODE)
 
 

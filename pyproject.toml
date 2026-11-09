@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tracely"
-version = "1.5.0"
+version = "2.0.0"
 description = "A Python package for trace data processing."
 authors = [{ name = "tracely@delhivery.com", email = "tracely@delhivery.com" }]
 license = { file = "LICENSE.txt" }

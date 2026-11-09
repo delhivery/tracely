@@ -10,13 +10,8 @@ import numpy as np
 from sklearn.neighbors import BallTree
 import infomap
 
+from .. import constants
 from . import _stop_event_grouping
-
-# Matches the `haversine` PyPI package's own Earth-radius constant
-# (`_AVG_EARTH_RADIUS_KM = 6371.0088`), which `tracely.utils.utils.get_haversine_distance`
-# already uses for every other distance calculation in this codebase, and the same constant
-# `_stop_event_grouping.pyx` uses, for consistency across the whole module.
-_EARTH_RADIUS_M = 6371008.8
 
 
 def _find_nearby_event_pairs(event_coords, max_dist_for_merging_stop_points):
@@ -37,7 +32,7 @@ def _find_nearby_event_pairs(event_coords, max_dist_for_merging_stop_points):
     """
 
     event_coords_radians = np.radians(event_coords)
-    radius_radians = max_dist_for_merging_stop_points / _EARTH_RADIUS_M
+    radius_radians = max_dist_for_merging_stop_points / constants.AVG_EARTH_RADIUS_M
 
     tree = BallTree(event_coords_radians, metric="haversine")
     return tree.query_radius(event_coords_radians, r=radius_radians)
