@@ -133,7 +133,20 @@ class CreateTraceData:
         # to produce (ping_id, timestamp, input_latitude, input_longitude,
         # event_type, force_retain, error_radius), instead of going through
         # pd.DataFrame(list_of_dicts) built from Ping.__dict__.
-        trace_df = pd.DataFrame({
+        # Every column -- core + cleaned_latitude/longitude + all default-value
+        # columns -- built in ONE pd.DataFrame() call, instead of a 7-column
+        # frame followed by 13 separate `trace_df[key] = ...` column inserts.
+        # Each of those inserts used to be its own expensive block-manager
+        # operation (verified via cProfile: ~13 `managers.insert()` calls per
+        # object, the single biggest remaining cost in `__init__`); a dict
+        # with every column already has everything pandas needs to lay out
+        # the whole block manager once. `list(latitudes)`/`list(longitudes)`
+        # (not the same list object passed twice under 2 keys) keep
+        # cleaned_latitude/longitude genuinely independent column data from
+        # input_latitude/longitude, same as the old `.copy()` did -- pandas
+        # would likely still build independent arrays per dict key either
+        # way, but this makes that independence explicit rather than implicit.
+        all_columns = {
             "ping_id": ping_ids,
             "timestamp": timestamps,
             "input_latitude": latitudes,
@@ -141,13 +154,11 @@ class CreateTraceData:
             "event_type": event_types,
             "force_retain": force_retains,
             "error_radius": error_radii,
-        })
-
-        trace_df["cleaned_latitude"] = trace_df["input_latitude"].copy()
-        trace_df["cleaned_longitude"] = trace_df["input_longitude"].copy()
-
-        for key, value in constants.DEFAULT_VALUES_FOR_ADDED_KEYS_IN_CLEANED_TRACE.items():
-            trace_df[key] = value
+            "cleaned_latitude": list(latitudes),
+            "cleaned_longitude": list(longitudes),
+        }
+        all_columns.update(constants.DEFAULT_VALUES_FOR_ADDED_KEYS_IN_CLEANED_TRACE)
+        trace_df = pd.DataFrame(all_columns)
 
         return ping_objects, trace_df
 

@@ -480,7 +480,9 @@ def _validate_stop_summary(stop_summary, name="stop_summary"):
     _validate_global_stop_events_info(stop_summary["global_stop_events_info"])
 
 
-def validate_clean_trace_output(clean_trace_output, raw_trace_length, name="clean trace output"):
+def validate_clean_trace_output(clean_trace_output, raw_trace_length, name="clean trace output",
+                                include_cleaning_summary=True, include_distance_summary=True,
+                                include_stop_summary=True):
     """
     Validates the structure and contents of clean trace output.
 
@@ -488,6 +490,9 @@ def validate_clean_trace_output(clean_trace_output, raw_trace_length, name="clea
         clean_trace_output (dict): A dictionary containing cleaned trace, cleaning summary, distance summary, stop summary
         raw_trace_length (int): An integer representing the number of pings in input payload.
         name (str, optional): The name of the data variable. Defaults to "clean trace output".
+        include_cleaning_summary (bool, optional): Whether "cleaning_summary" is expected to be present in `clean_trace_output`. Defaults to True.
+        include_distance_summary (bool, optional): Whether "distance_summary" is expected to be present in `clean_trace_output`. Defaults to True.
+        include_stop_summary (bool, optional): Whether "stop_summary" is expected to be present in `clean_trace_output`. Defaults to True.
 
     Raises:
         ValidationException (KEY_ERROR_EXCEPTION_CODE: 4001): If a mandatory key is missing from the clean trace output.
@@ -592,16 +597,32 @@ def validate_clean_trace_output(clean_trace_output, raw_trace_length, name="clea
     
     DataValidationUtils.check_empty_dict(clean_trace_output,name)
 
-    for key in constants.CLEANING_OUTPUT_KEYS:
+    # "cleaned_trace" is always expected -- it's the primary output and
+    # never skippable. The 3 summary keys are only expected when their
+    # matching include_* flag is True, so a caller who skips a summary (to
+    # avoid computing it at all) doesn't get a spurious "missing key" error,
+    # and a caller who DOESN'T skip anything sees exactly today's behavior.
+    expected_keys = ["cleaned_trace"]
+    if include_cleaning_summary:
+        expected_keys.append("cleaning_summary")
+    if include_distance_summary:
+        expected_keys.append("distance_summary")
+    if include_stop_summary:
+        expected_keys.append("stop_summary")
+
+    for key in expected_keys:
         DataValidationUtils.check_key_in_a_dict(clean_trace_output, key)
 
     for key, value in clean_trace_output.items():
-        if key not in constants.CLEANING_OUTPUT_KEYS:
+        if key not in expected_keys:
             raise ValidationException(ValidationErrorMessage.UNEXPECTED_KEYS_IN_DICT.format(name),
                                       ValidationErrorCode.KEY_ERROR_EXCEPTION_CODE)
 
     validate_cleaned_trace(clean_trace_output["cleaned_trace"])
-    _validate_cleaning_summary(clean_trace_output["cleaning_summary"], raw_trace_length=raw_trace_length)
-    _validate_distance_summary(clean_trace_output["distance_summary"])
-    _validate_stop_summary(clean_trace_output["stop_summary"])
+    if include_cleaning_summary:
+        _validate_cleaning_summary(clean_trace_output["cleaning_summary"], raw_trace_length=raw_trace_length)
+    if include_distance_summary:
+        _validate_distance_summary(clean_trace_output["distance_summary"])
+    if include_stop_summary:
+        _validate_stop_summary(clean_trace_output["stop_summary"])
         

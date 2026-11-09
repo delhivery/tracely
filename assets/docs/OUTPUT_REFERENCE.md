@@ -8,6 +8,27 @@ output = clean_trace_object.get_trace_cleaning_output()
 #           "distance_summary": {...}, "stop_summary": {...}}
 ```
 
+`cleaned_trace` is always computed — it's the primary output and is never
+skippable. Each of the 3 summaries is independently skippable, to avoid
+computing it at all when a caller doesn't need it:
+
+```python
+output = clean_trace_object.get_trace_cleaning_output(
+    include_cleaning_summary=True,   # default
+    include_distance_summary=True,   # default
+    include_stop_summary=True)       # default
+# output = {"cleaned_trace": [...]}  # if all 3 flags are False
+```
+
+| Parameter | Type | Default | Effect when `False` |
+|---|---|---|---|
+| `include_cleaning_summary` | bool | `True` | `"cleaning_summary"` key is omitted from the output and never computed. |
+| `include_distance_summary` | bool | `True` | `"distance_summary"` key is omitted from the output and never computed. |
+| `include_stop_summary` | bool | `True` | `"stop_summary"` key is omitted from the output and never computed. |
+
+Calling `get_trace_cleaning_output()` with no arguments is unaffected by
+this — it returns exactly the same dict it always has.
+
 ---
 
 ## `cleaned_trace` (list)
