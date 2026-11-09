@@ -108,6 +108,15 @@ class CleanTrace():
 
     @raw_trace.setter
     def raw_trace(self, value) -> None:
+        """
+        Overrides the cached value `raw_trace` returns, so direct
+        assignment (`clean_trace_object.raw_trace = ...`) behaves the
+        same as it did when `raw_trace` was a plain attribute.
+
+        Args:
+            value (list): The value subsequent reads of `raw_trace` should return.
+        """
+
         self._raw_trace_cache = value
 
     def _add_runtime_info(self,

@@ -17,6 +17,15 @@ def _input_ping_is_obviously_valid(ping_dict):
     exact right exception. Mirrors `isinstance` semantics exactly
     (`isinstance(True, int)` is True in Python, same as the functions
     this mirrors).
+
+    Args:
+        ping_dict (dict): A single input ping, as passed to
+            `DataValidationUtils.validate_ping`.
+
+    Returns:
+        bool: True only if every field of `ping_dict` is provably valid.
+            False on any doubt -- the caller must fall back to the
+            original `validate_ping` in that case.
     """
 
     try:

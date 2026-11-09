@@ -28,6 +28,15 @@ def _ping_is_obviously_valid(ping):
     `isinstance(True, int)` is True in Python -- so a bool value passes
     an int/float check here too, matching `DataValidationUtils.check_int`/
     `check_int_or_float`, which use plain `isinstance`, not `type() is`.
+
+    Args:
+        ping (dict): A single ping from a cleaned trace, as passed to
+            `validate_cleaned_trace`.
+
+    Returns:
+        bool: True only if every field of `ping` is provably valid.
+            False on any doubt -- the caller must fall back to the
+            original per-field validation in that case.
     """
 
     try:

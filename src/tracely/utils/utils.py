@@ -240,6 +240,19 @@ def vectorized_change_in_direction(prev_lat: np.ndarray,
     """
 
     def bearing(lat_1, lng_1, lat_2, lng_2):
+        """
+        Array equivalent of `calculate_initial_compass_bearing`, for
+        arrays of coordinate pairs. Uses the exact same `atan2`-based
+        formula, so results are identical to calling
+        `calculate_initial_compass_bearing` element-wise.
+
+        Args:
+            lat_1, lng_1, lat_2, lng_2 (numpy.ndarray): Arrays of coordinates in decimal degrees.
+
+        Returns:
+            numpy.ndarray: Compass bearing in degrees (0-360), dtype float64.
+        """
+
         delta_lng = np.radians(lng_2 - lng_1)
         lat_1_r = np.radians(lat_1)
         lat_2_r = np.radians(lat_2)
