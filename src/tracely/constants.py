@@ -32,6 +32,18 @@ timezone_offset = datetime.timedelta(hours=5,
                                      minutes=30) # offset for IST
 
 
+#####################################################################
+# Mean earth radius in meters, matching the `haversine` PyPI package's
+# own constant (`_AVG_EARTH_RADIUS_KM = 6371.0088`) converted to meters.
+# Single source of truth for every piece of this codebase that needs to
+# match that package's distance calculation without calling it directly
+# (utils.vectorized_haversine, stop_detection_utils's BallTree radius
+# conversion). get_haversine_distance itself calls the `haversine`
+# package directly, so it doesn't need this constant at all.
+#####################################################################
+AVG_EARTH_RADIUS_M = 6371008.8
+
+
 #######################
 # Keys in trace payload
 #######################

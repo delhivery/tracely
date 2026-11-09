@@ -1,10 +1,10 @@
-import copy
 import pandas as pd
 from dataclasses import dataclass, field
 from typing import Union, Dict, Any
 
 from . import constants
 from .utils.data_validation_utils import DataValidationUtils
+from .utils.utils import fast_deepcopy
 
 
 @dataclass
@@ -22,6 +22,9 @@ class Ping:
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
+_OPTIONAL_PING_ITEMS = list(constants.OPTIONAL_ITEMS_IN_A_PING.items())
+
+
 class CreateTraceData:
     def __init__(self,
                  payload: dict):
@@ -35,87 +38,118 @@ class CreateTraceData:
             filled_input_payload (dict): Input payload with filled missing optional values.
         """
 
-        # Create deep copy of input payload
-        filled_input_payload = copy.deepcopy(self.input_payload)
+        # Builds an independent working copy and fills in missing optional
+        # defaults in the SAME pass, instead of a full generic deep copy
+        # followed by a second full pass over every ping to fill defaults.
+        # A shallow copy of each ping dict is enough protection for every
+        # field except "metadata" (the only field whose value is itself a
+        # mutable object a caller could change after the fact) -- every
+        # other field is a plain int/float/str/bool/None, which can never
+        # be mutated in place, so a shallow copy already fully protects it.
+        filled_input_payload = dict(self.input_payload)
 
-        # Fill optional data in trace payload keys
-        trace_payload_keys = list(filled_input_payload.keys())
         for key, default_value in constants.OPTIONAL_ITEMS_IN_A_TRACE_PAYLOAD.items():
-            if (key not in trace_payload_keys):
+            if key not in filled_input_payload:
                 filled_input_payload[key] = default_value
 
-        # Fill optional data in each trace ping dictionary
-        for ping_dict in filled_input_payload["trace"]:
-            ping_keys = list(ping_dict.keys())
-            for key, default_value in constants.OPTIONAL_ITEMS_IN_A_PING.items():
-                if (key not in ping_keys):
-                    ping_dict[key] = default_value
+        filled_trace = []
+        for ping_dict in self.input_payload["trace"]:
+            new_ping_dict = dict(ping_dict)
+            for key, default_value in _OPTIONAL_PING_ITEMS:
+                if key not in new_ping_dict:
+                    new_ping_dict[key] = default_value
+
+            metadata = new_ping_dict["metadata"]
+            if metadata is not None:
+                new_ping_dict["metadata"] = fast_deepcopy(metadata)
+
+            filled_trace.append(new_ping_dict)
+
+        filled_input_payload["trace"] = filled_trace
 
         return filled_input_payload
 
-    def _create_ping_objects(self,
-                             filled_input_payload: dict) -> list:
+    def _create_ping_objects_and_dataframe(self,
+                                           filled_input_payload: dict) -> tuple:
         """
-        Create ping objects from pings provided as dictionaries in the valid input payload.
+        Create `Ping` objects AND the pings DataFrame together, from pings
+        provided as dictionaries in the valid, filled input payload --
+        combined into one pass over the (sorted) pings instead of two
+        (build every `Ping` object, then separately convert every `Ping`
+        object's `__dict__` back into a plain dict just to build the
+        DataFrame from that list of dicts).
 
         Args:
             filled_input_payload (dict): Trace payload with filled missing optional values.
 
         Returns:
-            ping_objects (list): A list containing `Ping` objects, created from pings provided as dictionaries in the valid input payload
+            tuple: (ping_objects, trace_df) -- same shapes/values as the
+            previous two-step implementation produced.
         """
 
-        ping_objects = []
-
-        # Sort the list in place based on the "timestamp" key
+        # Sort the list in place based on the "timestamp" key. This mutates
+        # filled_input_payload["trace"], which is already our own working
+        # copy (built in _fill_missing_optional_values_in_input_payload),
+        # never the caller's original list -- same as before.
         filled_input_payload["trace"].sort(key=lambda x: x["timestamp"])
 
-        # Iterate through filled input payload and create Ping objects
+        ping_objects = []
+        ping_ids, timestamps = [], []
+        latitudes, longitudes = [], []
+        event_types, force_retains, error_radii = [], [], []
+
         for i, ping_dict in enumerate(filled_input_payload["trace"], 1):
-            
-            if(ping_dict["ping_id"] is None):
-                ping_dict["ping_id"] = str(i)
+            ping_id = ping_dict["ping_id"]
+            if ping_id is None:
+                ping_id = str(i)
+                ping_dict["ping_id"] = ping_id
 
-            ping_object = Ping(ping_id=ping_dict["ping_id"],
-                               timestamp=ping_dict["timestamp"],
-                               latitude=ping_dict["latitude"],
-                               longitude=ping_dict["longitude"],
-                               event_type=ping_dict["event_type"],
-                               force_retain=ping_dict["force_retain"],
-                               error_radius=ping_dict["error_radius"],
-                               metadata=ping_dict["metadata"]
-                                )
-            ping_objects.append(ping_object)
+            timestamp = ping_dict["timestamp"]
+            latitude = ping_dict["latitude"]
+            longitude = ping_dict["longitude"]
+            event_type = ping_dict["event_type"]
+            force_retain = ping_dict["force_retain"]
+            error_radius = ping_dict["error_radius"]
 
-        return ping_objects
+            ping_objects.append(Ping(ping_id=ping_id,
+                                     timestamp=timestamp,
+                                     latitude=latitude,
+                                     longitude=longitude,
+                                     event_type=event_type,
+                                     force_retain=force_retain,
+                                     error_radius=error_radius,
+                                     metadata=ping_dict["metadata"]))
 
-    def _create_dataframe_from_ping_objects(self, 
-                                            ping_objects: list) -> pd.DataFrame:
-        """
-        Create dataframe of pings from Ping objects provided in a list. DataFrame does not contain column corresponding to metadata in Pings.
+            ping_ids.append(ping_id)
+            timestamps.append(timestamp)
+            latitudes.append(latitude)
+            longitudes.append(longitude)
+            event_types.append(event_type)
+            force_retains.append(force_retain)
+            error_radii.append(error_radius)
 
-        Args:
-            ping_objects (list): List of Ping objects.
+        # Builds trace_df directly from the column lists collected above,
+        # in the same column order _create_dataframe_from_ping_objects used
+        # to produce (ping_id, timestamp, input_latitude, input_longitude,
+        # event_type, force_retain, error_radius), instead of going through
+        # pd.DataFrame(list_of_dicts) built from Ping.__dict__.
+        trace_df = pd.DataFrame({
+            "ping_id": ping_ids,
+            "timestamp": timestamps,
+            "input_latitude": latitudes,
+            "input_longitude": longitudes,
+            "event_type": event_types,
+            "force_retain": force_retains,
+            "error_radius": error_radii,
+        })
 
-        Returns:
-            trace_df (pandas.DataFrame): A pandas dataframe containing pings, created from Pings provided as dictionaries in the valid ping objects list.
-        """
+        trace_df["cleaned_latitude"] = trace_df["input_latitude"].copy()
+        trace_df["cleaned_longitude"] = trace_df["input_longitude"].copy()
 
-        # Create dataframe from list of Ping objects
-        trace_df = pd.DataFrame([{key: value for key, value in ping.__dict__.items() if key != "metadata"} for ping in ping_objects])
-
-        # Rename latitude, longitude columns and add cleaned_latitude, cleaned_longitude keys.
-        trace_df = trace_df.rename(columns={"latitude": "input_latitude",
-                                            "longitude": "input_longitude"})
-
-        trace_df["cleaned_latitude"] = copy.deepcopy(trace_df["input_latitude"])
-        trace_df["cleaned_longitude"] = copy.deepcopy(trace_df["input_longitude"])
-
-        # Add additional keys in the dataframe
         for key, value in constants.DEFAULT_VALUES_FOR_ADDED_KEYS_IN_CLEANED_TRACE.items():
             trace_df[key] = value
 
-        return trace_df
+        return ping_objects, trace_df
 
     def create_trace_data(self) -> dict:
         """
@@ -128,18 +162,15 @@ class CreateTraceData:
         Raises:
             ValidationException: Possible scenarios have been described in the documentation of validate_trace_payload function.
         """
-        
+
         # Validate trace payload
         DataValidationUtils.validate_trace_payload(self.input_payload)
 
         # Fill missing optional data
         filled_input_payload = self._fill_missing_optional_values_in_input_payload()
 
-        # Create list of Ping objects
-        ping_objects = self._create_ping_objects(filled_input_payload)
-
-        # Create pings dataframe from the list of Ping objects
-        trace_df = self._create_dataframe_from_ping_objects(ping_objects)
+        # Create list of Ping objects and the pings dataframe together
+        ping_objects, trace_df = self._create_ping_objects_and_dataframe(filled_input_payload)
 
         # Assign created data to respective keys
         filled_input_payload["ping_objects"] = ping_objects

@@ -74,12 +74,22 @@ def plot_raw_trace_from_trace_output(trace: list,
     # Extract latitude and longitude from trace_df and store as tuples in raw_trace_geometry
     raw_trace_geometry = list(zip(trace_df["input_latitude"], trace_df["input_longitude"]))
 
-    for index, row in trace_df.iterrows():
+    segments = trace_df["trace_segment"].to_numpy()
+    ping_ids = trace_df["ping_id"].to_numpy()
+    input_lats = trace_df["input_latitude"].to_numpy()
+    input_lngs = trace_df["input_longitude"].to_numpy()
+    timestamps = trace_df["timestamp"].to_numpy()
+    error_radii = trace_df["error_radius"].to_numpy()
+    event_types = trace_df["event_type"].to_numpy()
+    force_retains = trace_df["force_retain"].to_numpy()
+    n_rows = len(trace_df)
 
-        segment_id = row["trace_segment"]
+    for index in range(n_rows):
+
+        segment_id = segments[index]
         segment_layer = layers_dict[segment_id]
 
-        if (index != (len(trace_df) - 1)):
+        if (index != (n_rows - 1)):
             start = raw_trace_geometry[index]
             end = raw_trace_geometry[index + 1]
             fl.PolyLine(locations=[start, end],
@@ -95,26 +105,26 @@ def plot_raw_trace_from_trace_output(trace: list,
                                     background_color="transparent",
                                     inner_icon_style="font-size:12px;")
 
-        raw_coordinates = [row["input_latitude"],
-                           row["input_longitude"]]
+        raw_coordinates = [input_lats[index],
+                           input_lngs[index]]
 
         fl.Marker(raw_coordinates,
                   icon=icon,
                   tooltip="Index: " + str(index + 1) +
-                  "_ping_id: " + row["ping_id"],
+                  "_ping_id: " + ping_ids[index],
                   tags=[""],
-                  popup=create_general_popup({"ping_id": row["ping_id"],
-                                              "input_latitude": None if pd.isna(row["input_latitude"]) else row["input_latitude"],
-                                              "input_longitude": None if pd.isna(row["input_longitude"]) else row["input_longitude"],
-                                              "timestamp": int(row["timestamp"]),
-                                              "time_string": convert_unix_timestamp_to_human_readable(int((row["timestamp"])//1000)),
-                                              "error_radius": None if pd.isna(row["error_radius"]) else row["error_radius"],
-                                              "event_type": None if pd.isna(row["event_type"]) else row["event_type"],
-                                              "force_retain": row["force_retain"]}
+                  popup=create_general_popup({"ping_id": ping_ids[index],
+                                              "input_latitude": None if pd.isna(input_lats[index]) else input_lats[index],
+                                              "input_longitude": None if pd.isna(input_lngs[index]) else input_lngs[index],
+                                              "timestamp": int(timestamps[index]),
+                                              "time_string": convert_unix_timestamp_to_human_readable(int((timestamps[index])//1000)),
+                                              "error_radius": None if pd.isna(error_radii[index]) else error_radii[index],
+                                              "event_type": None if pd.isna(event_types[index]) else event_types[index],
+                                              "force_retain": force_retains[index]}
                                               )
                         ).add_to(segment_layer)
- 
-    fl.LayerControl().add_to(map_object) 
+
+    fl.LayerControl().add_to(map_object)
     return map_object
 
 
@@ -156,28 +166,42 @@ def plot_clean_trace_from_trace_output(trace,
         map_object.add_child(child=clean_trace_segment_layer)
         layers_dict[segment_id] = clean_trace_segment_layer
 
-    for index, row in trace_df.iterrows():
+    cleaned_lats_all = trace_df["cleaned_latitude"].to_numpy()
+    cleaned_lngs_all = trace_df["cleaned_longitude"].to_numpy()
 
-        if ((row["cleaned_latitude"] is None) or
-           (row["cleaned_longitude"] is None) or
-           (pd.isna(row["cleaned_latitude"])) or
-           (pd.isna(row["cleaned_longitude"]))):
+    for index in range(len(trace_df)):
+
+        if ((cleaned_lats_all[index] is None) or
+           (cleaned_lngs_all[index] is None) or
+           (pd.isna(cleaned_lats_all[index])) or
+           (pd.isna(cleaned_lngs_all[index]))):
             continue
 
-        clean_trace_geometry.append((row["cleaned_latitude"],row["cleaned_longitude"]))
+        clean_trace_geometry.append((cleaned_lats_all[index], cleaned_lngs_all[index]))
 
     total_non_null_pings = len(clean_trace_geometry)
     counter = 0
 
-    for index, row in trace_df.iterrows():
+    segments = trace_df["trace_segment"].to_numpy()
+    ping_ids = trace_df["ping_id"].to_numpy()
+    input_lats = trace_df["input_latitude"].to_numpy()
+    input_lngs = trace_df["input_longitude"].to_numpy()
+    timestamps = trace_df["timestamp"].to_numpy()
+    error_radii = trace_df["error_radius"].to_numpy()
+    event_types = trace_df["event_type"].to_numpy()
+    force_retains = trace_df["force_retain"].to_numpy()
+    update_statuses = trace_df["update_status"].to_numpy()
+    last_updated_bys = trace_df["last_updated_by"].to_numpy()
 
-        if ((row["cleaned_latitude"] is None) or
-           (row["cleaned_longitude"] is None) or
-           (pd.isna(row["cleaned_latitude"])) or
-           (pd.isna(row["cleaned_longitude"]))):
+    for index in range(len(trace_df)):
+
+        if ((cleaned_lats_all[index] is None) or
+           (cleaned_lngs_all[index] is None) or
+           (pd.isna(cleaned_lats_all[index])) or
+           (pd.isna(cleaned_lngs_all[index]))):
             continue
 
-        segment_id = row["trace_segment"]
+        segment_id = segments[index]
         segment_layer = layers_dict[segment_id]
 
         if (counter != (total_non_null_pings - 1)):
@@ -197,26 +221,26 @@ def plot_clean_trace_from_trace_output(trace,
                                     background_color="transparent",
                                     inner_icon_style="font-size:12px;")
 
-        clean_coordinates = [row["cleaned_latitude"],
-                             row["cleaned_longitude"]]
+        clean_coordinates = [cleaned_lats_all[index],
+                             cleaned_lngs_all[index]]
 
         fl.Marker(clean_coordinates,
                   icon=icon,
                   tooltip="Index: " + str(index + 1) +
-                  "_ping_id: " + row["ping_id"],
+                  "_ping_id: " + ping_ids[index],
                   tags=[""],
-                  popup=create_general_popup({"ping_id": row["ping_id"],
-                                              "input_latitude": None if pd.isna(row["input_latitude"]) else row["input_latitude"],
-                                              "input_longitude": None if pd.isna(row["input_longitude"]) else row["input_longitude"],
-                                              "timestamp": int(row["timestamp"]),
-                                              "time_string": convert_unix_timestamp_to_human_readable(int((row["timestamp"])//1000)),
-                                              "error_radius": None if pd.isna(row["error_radius"]) else row["error_radius"],
-                                              "event_type": None if pd.isna(row["event_type"]) else row["event_type"],
-                                              "force_retain": row["force_retain"],
-                                              "cleaned_latitude": None if pd.isna(row["cleaned_latitude"]) else row["cleaned_latitude"],
-                                              "cleaned_longitude": None if pd.isna(row["cleaned_longitude"]) else row["cleaned_longitude"],
-                                              "update_status": row["update_status"],
-                                              "last_updated_by": row["last_updated_by"]
+                  popup=create_general_popup({"ping_id": ping_ids[index],
+                                              "input_latitude": None if pd.isna(input_lats[index]) else input_lats[index],
+                                              "input_longitude": None if pd.isna(input_lngs[index]) else input_lngs[index],
+                                              "timestamp": int(timestamps[index]),
+                                              "time_string": convert_unix_timestamp_to_human_readable(int((timestamps[index])//1000)),
+                                              "error_radius": None if pd.isna(error_radii[index]) else error_radii[index],
+                                              "event_type": None if pd.isna(event_types[index]) else event_types[index],
+                                              "force_retain": force_retains[index],
+                                              "cleaned_latitude": None if pd.isna(cleaned_lats_all[index]) else cleaned_lats_all[index],
+                                              "cleaned_longitude": None if pd.isna(cleaned_lngs_all[index]) else cleaned_lngs_all[index],
+                                              "update_status": update_statuses[index],
+                                              "last_updated_by": last_updated_bys[index]
                                               })
                         ).add_to(segment_layer)
 
@@ -257,28 +281,42 @@ def _plot_before_or_after_operation(trace_df,
 
         layers_dict[segment_id] = raw_trace_segment_layer
 
-    for index, row in trace_df.iterrows():
+    cleaned_lats_all = trace_df["cleaned_latitude" + suffix].to_numpy()
+    cleaned_lngs_all = trace_df["cleaned_longitude" + suffix].to_numpy()
 
-        if ((row["cleaned_latitude" + suffix] is None) or
-           (row["cleaned_longitude" + suffix] is None) or
-           (pd.isna(row["cleaned_latitude" + suffix])) or
-           (pd.isna(row["cleaned_longitude" + suffix]))):
+    for index in range(len(trace_df)):
+
+        if ((cleaned_lats_all[index] is None) or
+           (cleaned_lngs_all[index] is None) or
+           (pd.isna(cleaned_lats_all[index])) or
+           (pd.isna(cleaned_lngs_all[index]))):
             continue
 
-        raw_trace_geometry.append((row["cleaned_latitude" + suffix],row["cleaned_longitude" + suffix]))
+        raw_trace_geometry.append((cleaned_lats_all[index], cleaned_lngs_all[index]))
 
     total_non_null_pings = len(raw_trace_geometry)
     counter = 0
 
-    for index, row in trace_df.iterrows():
+    segments = trace_df["trace_segment"].to_numpy()
+    ping_ids = trace_df["ping_id"].to_numpy()
+    input_lats = trace_df["input_latitude" + suffix].to_numpy()
+    input_lngs = trace_df["input_longitude" + suffix].to_numpy()
+    timestamps = trace_df["timestamp" + suffix].to_numpy()
+    error_radii = trace_df["error_radius" + suffix].to_numpy()
+    event_types = trace_df["event_type" + suffix].to_numpy()
+    force_retains = trace_df["force_retain" + suffix].to_numpy()
+    update_statuses = trace_df["update_status" + suffix].to_numpy()
+    last_updated_bys = trace_df["last_updated_by" + suffix].to_numpy()
 
-        if ((row["cleaned_latitude" + suffix] is None) or
-           (row["cleaned_longitude" + suffix] is None) or
-           (pd.isna(row["cleaned_latitude" + suffix])) or
-           (pd.isna(row["cleaned_longitude" + suffix]))):
+    for index in range(len(trace_df)):
+
+        if ((cleaned_lats_all[index] is None) or
+           (cleaned_lngs_all[index] is None) or
+           (pd.isna(cleaned_lats_all[index])) or
+           (pd.isna(cleaned_lngs_all[index]))):
             continue
 
-        segment_id = row["trace_segment"]
+        segment_id = segments[index]
         segment_layer = layers_dict[segment_id]
 
         if (counter != (total_non_null_pings - 1)):
@@ -298,25 +336,25 @@ def _plot_before_or_after_operation(trace_df,
                                     background_color="transparent",
                                     inner_icon_style="font-size:12px;")
 
-        raw_coordinates = [row["cleaned_latitude" + suffix],row["cleaned_longitude" + suffix]]
+        raw_coordinates = [cleaned_lats_all[index], cleaned_lngs_all[index]]
 
         fl.Marker(raw_coordinates,
                   icon=icon,
                   tooltip="Index: " + str(index + 1) +
-                  "_ping_id: " + row["ping_id"],
+                  "_ping_id: " + ping_ids[index],
                   tags=[""],
-                  popup=create_general_popup({"ping_id": row["ping_id"],
-                                              "input_latitude": None if pd.isna(row["input_latitude" + suffix]) else row["input_latitude" + suffix],
-                                              "input_longitude": None if pd.isna(row["input_longitude" + suffix]) else row["input_longitude" + suffix],
-                                              "timestamp": int(row["timestamp" + suffix]),
-                                              "time_string": convert_unix_timestamp_to_human_readable(int((row["timestamp" + suffix])//1000)),
-                                              "error_radius": None if pd.isna(row["error_radius" + suffix]) else row["error_radius" + suffix],
-                                              "event_type": None if pd.isna(row["event_type" + suffix]) else row["event_type" + suffix],
-                                              "force_retain": row["force_retain" + suffix],
-                                              "cleaned_latitude": None if pd.isna(row["cleaned_latitude" + suffix]) else row["cleaned_latitude" + suffix],
-                                              "cleaned_longitude": None if pd.isna(row["cleaned_longitude" + suffix]) else row["cleaned_longitude" + suffix],
-                                              "update_status": row["update_status" + suffix],
-                                              "last_updated_by": row["last_updated_by" + suffix]})
+                  popup=create_general_popup({"ping_id": ping_ids[index],
+                                              "input_latitude": None if pd.isna(input_lats[index]) else input_lats[index],
+                                              "input_longitude": None if pd.isna(input_lngs[index]) else input_lngs[index],
+                                              "timestamp": int(timestamps[index]),
+                                              "time_string": convert_unix_timestamp_to_human_readable(int((timestamps[index])//1000)),
+                                              "error_radius": None if pd.isna(error_radii[index]) else error_radii[index],
+                                              "event_type": None if pd.isna(event_types[index]) else event_types[index],
+                                              "force_retain": force_retains[index],
+                                              "cleaned_latitude": None if pd.isna(cleaned_lats_all[index]) else cleaned_lats_all[index],
+                                              "cleaned_longitude": None if pd.isna(cleaned_lngs_all[index]) else cleaned_lngs_all[index],
+                                              "update_status": update_statuses[index],
+                                              "last_updated_by": last_updated_bys[index]})
                         ).add_to(segment_layer)
 
     return map_object
