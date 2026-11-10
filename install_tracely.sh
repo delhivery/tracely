@@ -31,6 +31,12 @@ if [ -z "$BASH_VERSION" ]; then
   exit 1
 fi
 
+# Abort immediately on any failing command -- without this, a failed build
+# step (e.g. a missing build dependency) falls through silently and this
+# script prints "Done" at the end regardless of whether anything actually
+# built.
+set -e
+
 BUILD_ONLY=false
 if [ "$1" = "--build-only" ]; then
   BUILD_ONLY=true
@@ -73,7 +79,7 @@ if [ "$BUILD_ONLY" = true ]; then
   # install of tracely itself, so this environment's "tracely" package name (if any)
   # is left completely alone.
   echo "Installing build tools..."
-  python3 -m pip install "Cython>=3.1.3" "numpy>=2.3.2"
+  python3 -m pip install "setuptools>=61.0" "Cython>=3.1.3" "numpy>=2.3.2"
 
   echo "Building tracely's compiled extension in place..."
   python3 setup.py build_ext --inplace
@@ -83,7 +89,7 @@ else
   # Normal mode: build a real wheel and pip install it into the current environment.
   echo "Installing build tools..."
   python3 -m pip install --upgrade pip
-  python3 -m pip install setuptools wheel twine build Cython
+  python3 -m pip install "setuptools>=61.0" wheel twine build Cython
 
   echo "Building the package..."
   python3 -m build --wheel --sdist .
